@@ -9,8 +9,8 @@ runOnTick(1)
 if(first() || dupefinished())
 {
     E = entity()
-    A = E:setFSensor(vec(0,0,0),vec(0,0,1), -25):addClassHit("prop_physics")
-    B = E:setFSensor(vec(0,0,0),vec(0,0,1), 25):addClassHit("prop_physics")
+    A = E:setFSensor(vec(0,0,0),vec(0,0,1), -25):addHitOnly("GetClass","prop_physics")
+    B = E:setFSensor(vec(0,0,0),vec(0,0,1), 25):addHitOnly("GetClass","prop_physics")
 }
 
 A:smpLocal()

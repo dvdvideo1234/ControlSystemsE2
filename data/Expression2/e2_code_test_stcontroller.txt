@@ -1,7 +1,7 @@
-@name Test Control
+@name adaptive fiter OOP
 @inputs But RF
 @outputs PV CN TT EE RR
-@persist T:fsensor E:entity C:stcontroller V2:vector2
+@persist T:fsensor E:entity C:stcontrol V2:vector2
 @trigger 
 @model models/props_phx/construct/metal_wire1x1x1.mdl
 
@@ -11,13 +11,15 @@ if(first() || dupefinished())
 {
     V2 = vec2(1.1,0.5)   
     E = entity()
-    T = E:setFSensor(E:massCenterL(),vec(0,0,1), -225):addClassHit("prop_physics")
-    C = newStController():setGain(1700, 6800, 7800):setWindup(-9000,9000):setPowerPI(V2):dumpConsole("TEST")
+    T = E:setFSensor(E:massCenterL(),vec(0,0,1), -225)
+    T:addHitSkip("GetModel","models/props_trainstation/trainstation_clock001.mdl")
+    T:addHitOnly("GetClass","prop_physics")
+    C = newStControl():setGain(1700, 6800, 7800):setWindup(-9000,9000):setPowerPI(V2):dumpConsole("TEST")
     E:setMass(250)
 }
 
 PV = T:smpLocal():getFractionLength()
-CN = C:isActive(But):setState(RF, PV):getControl()
+CN = C:setIsActive(But):setState(RF, PV):getControl()
 
 
 TT = C:getTimeDelta()
@@ -27,3 +29,5 @@ E:applyForce(CN * vec(0,0,1))
 EE = C:getErrorNow()
 RR = C:getTimeRatio()
 BB = C:getTimeBench()
+
+
