@@ -1,0 +1,42 @@
+@name Test
+@inputs 
+@outputs [H1 H2 H3]:array C
+@persist [A B]:fsensor E:entity
+@trigger 
+@model models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl
+runOnTick(1)
+
+if(first() || dupefinished())
+{
+    E = entity()
+    A = E:setFSensor(vec(0,0,0),vec(0,0,1), -25):addClassHit("prop_physics")
+    B = E:setFSensor(vec(0,0,0),vec(0,0,1), 25):addClassHit("prop_physics")
+}
+
+A:smpLocal()
+
+H1[1, number] = A:isHitNoDraw()
+H1[2, number] = A:isHitNonWorld()
+H1[3, number] = A:isHit()
+H1[4, number] = A:isHitSky()
+H1[5, number] = A:isHitWorld()
+H1[6, number] = A:getHitBox()
+H1[7, number] = A:getMatType()
+H1[8, number] = A:getHitGroup()
+H2[1, vector] = A:getHitPos()
+H2[2, vector] = A:getHitNormal()
+H2[3, vector] = A:getNormal()
+H2[4, string] = A:getHitTexture()
+H2[5, vector] = A:getStartPos()
+H2[6, number] = A:getSurfaceProps()
+H2[7, number] = A:getPhysicsBone()
+H2[8, string] = A:getSurfacePropsName()
+H3[1, number] = A:getFraction()
+H3[2, number] = A:getFractionLength()
+H3[3, number] = A:isStartSolid()
+H3[4, number] = A:isAllSolid()
+H3[5, number] = A:getFractionLeftSolid()
+H3[6, number] = A:getFractionLeftSolidLength()
+H3[7, entity] = A:getEntity()
+
+C = B:setOrigin(E:pos()):setDirection(E:up()):smpWorld():getFractionLength()
