@@ -1,0 +1,33 @@
+[h1] Description [/h1]
+This addon adds control theory customizable PID loop and trace sensor OOP for wire Expression 2
+
+[h1] Feature List [/h1]
+[list]
+ [*] Object oriented expression script behavior OOP
+ [*] The objects are created once during initialization
+ [*] The controller and sensor have separate dedicated classes
+ [*] Fixed or dynamic sampling time support for the controller object
+ [*] Trace sensor can retrieve all the data that can be located in in a regular trace
+ [*] Coding effective environment API
+ [*] Traces are 60% faster when using the fsensor API than the regular wire rangers
+ [*] The controller and sensors can be monitored easily
+ [*] The sensor can be attached to an entity to use its local coordinates and angle
+ [*] Sensors tracing hit filter can be easily customized by linking to entity method
+ [*] Both sensors and controllers support persist variable setting and can be dupable
+ [*] Supports varieties if controller/sensor state initialization
+[/list]
+
+For detailed manual, please refer to Readme.md
+
+Readme: https://github.com/dvdvideo1234/ControlSystemsE2/readme.md
+
+Git repository: https://github.com/dvdvideo1234/ControlSystemsE2
+
+Report errors to: https://github.com/dvdvideo1234/ControlSystemsE2/issues
+
+Re-uploading and source stealing will not be tolerated !
+Selling it is also out of option, as the open source suggests !
+
+If you want to support me and you like what I do:
+
+paypal.me/DeyanVasilev

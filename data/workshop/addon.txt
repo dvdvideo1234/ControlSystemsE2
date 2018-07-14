@@ -1,0 +1,6 @@
+"AddonInfo"
+{
+  "name" "Control Systems E2"
+  "author_name" "DVD"
+  "info" "Adds control theory and trace API to wire E2"
+}
