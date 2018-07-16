@@ -1,8 +1,6 @@
 :: Hard reset the HEAD: git push origin +<NEW_HEAD_COMMIT_HASH>:master
 :: 6af74344a888bdf9fbb35d887c3f77691820a50e
 :: git push origin +6af74344a888bdf9fbb35d887c3f77691820a50e:master
-:: cd /e
-:: cd Documents/Lua-Projs/SVN/TrackAssemblyTool_GIT_master
 
 @echo off
 
