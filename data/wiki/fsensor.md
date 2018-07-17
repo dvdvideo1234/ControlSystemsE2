@@ -19,13 +19,14 @@ The description of the API is provided in the table below.
 | Instance creator | Description |
 |---|---|
 | copyFSensor(xfs:) | Returns flash sensor copy instance of the current object |
-| newFSensor(e:) | Returns flash sensor local to the entity by zero origin position, zero direction vector, zero length distance |
-| newFSensor(e:v) | Returns flash sensor local to the entity by origin position, zero direction vector, zero length distance |
-| newFSensor(e:vv) | Returns flash sensor local to the entity by origin position, direction vector, zero length distance |
-| newFSensor(v) | Returns flash sensor relative to the world by zero origin position, zero direction vector, zero length distance |
+| newFSensor() | Returns flash sensor relative to the world by zero origin position, zero direction vector, zero length distance |
+| newFSensor(v) | Returns flash sensor relative to the world by origin position, zero direction vector, zero length distance |
 | newFSensor(vv) | Returns flash sensor relative to the world by origin position, direction vector, zero length distance |
 | newFSensor(vvn) | Returns flash sensor relative to the world by origin position, direction vector, length distance |
 | noFSensor() | Returns invalid flash sensor object |
+| setFSensor(e:) | Returns flash sensor local to the entity by zero origin position, zero direction vector, zero length distance |
+| setFSensor(e:v) | Returns flash sensor local to the entity by origin position, zero direction vector, zero length distance |
+| setFSensor(e:vv) | Returns flash sensor local to the entity by origin position, direction vector, zero length distance |
 | setFSensor(e:vvn) | Returns flash sensor local to the entity by origin position, direction vector, length distance |
 
 | Method/Function | Description |
@@ -37,7 +38,7 @@ The description of the API is provided in the table below.
 | addHitSkip(xfs:sn) | Adds the option to the flash sensor internal ignore hit list |
 | addHitSkip(xfs:ss) | Adds the option to the flash sensor internal ignore hit list |
 | getAttachEntity(xfs:) | Returns the attachment entity of the flash sensor |
-| getCollisionGroup(xfs:) | Returns flash sensor trace collision group enum [COLLISION_GROUP](https://wiki.garrysmod.com/page/Enums/COLLISION_GROUP) |
+| getCollisionGroup(xfs:) | Returns flash sensor trace collision group enums [COLLISION_GROUP](https://wiki.garrysmod.com/page/Enums/COLLISION_GROUP) |
 | getDirection(xfs:) | Returns flash sensor direction vector |
 | getDirectionLocal(xfs:) | Returns flash sensor world direction vector converted to attachment entity local axis |
 | getDirectionLocal(xfs:a) | Returns flash sensor world direction vector converted to angle local axis |
@@ -57,7 +58,7 @@ The description of the API is provided in the table below.
 | getHitTexture(xfs:) | Returns the flash sensor sampled trace `HitTexture` string |
 | getIgnoreWorld(xfs:) | Returns the ignore world flag of the flash sensor |
 | getLength(xfs:) | Returns flash sensor length distance |
-| getMask(xfs:) | Returns flash sensor trace hit mask enum [MASK](https://wiki.garrysmod.com/page/Enums/MASK) |
+| getMask(xfs:) | Returns flash sensor trace hit mask enums [MASK](https://wiki.garrysmod.com/page/Enums/MASK) |
 | getMatType(xfs:) | Returns the flash sensor sampled trace `MatType` material type number |
 | getNormal(xfs:) | Returns the flash sensor sampled trace `Normal` aim vector |
 | getOrigin(xfs:) | Returns flash sensor origin position |
@@ -87,10 +88,10 @@ The description of the API is provided in the table below.
 | remHitSkip(xfs:ss) | Removes the option from the flash sensor internal ignore hit list |
 | setAttachEntity(xfs:e) | Updates the attachment entity of the flash sensor |
 | setAttachEntity(xfs:n) | Updates the ignore world flag of the flash sensor |
-| setCollisionGroup(xfs:n) | Updates flash sensor trace collision group enum [COLLISION_GROUP](https://wiki.garrysmod.com/page/Enums/COLLISION_GROUP) |
+| setCollisionGroup(xfs:n) | Updates flash sensor trace collision group enums [COLLISION_GROUP](https://wiki.garrysmod.com/page/Enums/COLLISION_GROUP) |
 | setDirection(xfs:v) | Updates the flash sensor direction vector |
 | setLength(xfs:n) | Updates flash sensor length distance |
-| setMask(xfs:n) | Updates flash sensor trace hit mask enum [MASK](https://wiki.garrysmod.com/page/Enums/MASK) |
+| setMask(xfs:n) | Updates flash sensor trace hit mask enums [MASK](https://wiki.garrysmod.com/page/Enums/MASK) |
 | setOrigin(xfs:v) | Updates the flash sensor origin position |
 | smpLocal(xfs:) | Samples the flash sensor and updates the trace result according to attachment entity local axis |
 | smpWorld(xfs:) | Samples the flash sensor and updates the trace result according to the world axis |
