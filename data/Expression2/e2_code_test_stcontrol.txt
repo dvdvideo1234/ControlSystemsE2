@@ -29,5 +29,3 @@ E:applyForce(CN * vec(0,0,1))
 EE = C:getErrorNow()
 RR = C:getTimeRatio()
 BB = C:getTimeBench()
-
-
