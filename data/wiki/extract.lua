@@ -3,31 +3,36 @@ local common = require('common')
 local API = {
   NAME = "FSensor",
   POOL = {
-    {name="MAKE",cols={"Instance creator", "Returns", "Description"}},
-    {name="APPLY",cols={"Method/Function", "Returns", "Description"}},
+    {name="MAKE",cols={"Instance creator", "R", "Description"}},
+    {name="APPLY",cols={"Method/Function", "R", "Description"}},
   },
   TYPE = {
     __pic = false,
     __obj = "xfs",
-    __key = "###", -- The key tells what patternis to be raplaced
+    __key = "###", -- The key tells what patterns to be replaced
     link = "![image](https://raw.githubusercontent.com/dvdvideo1234/ControlSystemsE2/master/data/pictures/types/type-###.jpg)",
     notype = "xxx"
   },
 
   REPLACE = {
-    __key = "###", -- The key tells what patternis to be raplaced
+    __key = "###", -- The key tells what patterns to be replaced
     ["MASK"] = "[###](https://wiki.garrysmod.com/page/Enums/###)",
     ["COLLISION_GROUP"] = "[COLLISION_GROUP](https://wiki.garrysmod.com/page/Enums/###)"
   }
 }
 
 API.RETURN = {
-  ["set"] = API.TYPE.__obj,
-  ["upd"] = API.TYPE.__obj,
-  ["smp"] = API.TYPE.__obj,
-  ["add"] = API.TYPE.__obj,
-  ["rem"] = API.TYPE.__obj,
-  ["is"] = "n",
+  PREF = {
+    ["set"] = API.TYPE.__obj,
+    ["upd"] = API.TYPE.__obj,
+    ["smp"] = API.TYPE.__obj,
+    ["add"] = API.TYPE.__obj,
+    ["rem"] = API.TYPE.__obj,
+    ["no"]  = API.TYPE.__obj,
+    ["new"] = API.TYPE.__obj,
+    ["is"] = "n"
+  },
+  MATCH = {}
 }
 
 local E2Helper = {}
@@ -35,8 +40,8 @@ E2Helper.Descriptions = {}
 
 ------------------------------------------------------PUT E2 DESCRIPTION HERE------------------------------------------------------
 
-
 ------------------------------------------------------PUT E2 DESCRIPTION HERE------------------------------------------------------
+
 if(DSC) then
   local t = API.POOL[1]
   for n in pairs(DSC) do
@@ -54,7 +59,8 @@ if(DSC) then
     io.write("\n|"..table.concat(tT, "|").."|")
   end
   
-  local function concatType(sT, bP)
+  local function concatType(sT, bP, bD)
+    if(bD) then return "" end
     local sV = tostring(sT)
     if(sV:sub(1,1) == "/") then sV = sV:sub(2,-1) end
     bU = common.getPick(bP ~= nil, bP, API.TYPE.__pic)
@@ -66,6 +72,22 @@ if(DSC) then
       return table.concat(exp, " ")
     else
       return sV
+    end
+  end
+  
+  local function readReturnFalues(sP) 
+    local fR = io.open(tostring(sP), "r")
+    if(not fR) then return end
+    local sL = fR:read("*line")
+    while(sL ~= nil) do
+      local sT = common.stringTrim(sL)
+      if(sL ~= "") then
+        local tT = common.stringExplode(sT, ":")
+        tT[1] = common.stringTrim(tostring(tT[1]))
+        tT[2] = common.stringTrim(tostring(tT[2]))
+        API.RETURN.MATCH[tT[1]] = tT[2]
+      end
+      sL = fR:read("*line")
     end
   end
   
@@ -91,17 +113,31 @@ if(DSC) then
           vars = vars.."/"..sbc
         end
       end
-      local cap = n:find("%L")
-      if(cap and API.RETURN[n:sub(1,cap-1)]) then
-        ret = "/"..API.RETURN[n:sub(1,cap-1)]
-      else
-        ret = "/"..API.TYPE.notype
+            
+      local cap, mch = n:find("%L"), ""
+      for rmk, rmv in pairs(API.RETURN.MATCH) do
+        if(n:find(rmk)) then ret = rmv; break end
       end
-      printRow({concatType(obj, true)..":"..n:gsub(obj:sub(2,-1)..":", ""), concatType(ret, true), DSC[n]})      
+      
+      if(ret == "") then
+        if(n:find(API.NAME)) then
+          ret = "/"..API.TYPE.__obj
+        elseif(cap and API.RETURN.PREF[n:sub(1,cap-1)]) then
+          ret = "/"..API.RETURN.PREF[n:sub(1,cap-1)]
+        else
+          ret = "/"..API.TYPE.notype
+        end
+      end
+      if(obj:find(API.TYPE.notype)) then
+        printRow({n:gsub("%(.-%)", "("..concatType(vars, true)..")"), concatType(ret, true), DSC[n]})      
+      else
+        printRow({concatType(obj, true)..":"..n:gsub("%(.-%)", "("..concatType(vars, true)..")"), concatType(ret, true), DSC[n]})      
+      end
     end
     io.write("\n")
   end
-
+  
+  readReturnFalues("E:/Documents/Lua-Projs/SVN/ControlSystemsE2/data/wiki/fsensor_rt.txt")
   printDescriptionTable(1)
   printDescriptionTable(2)
 

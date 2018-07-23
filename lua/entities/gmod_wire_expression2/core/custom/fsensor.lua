@@ -375,13 +375,13 @@ e2function fsensor fsensor:setAttachEntity(entity eE)
 end
 
 __e2setcost(3)
-e2function number fsensor:getIgnoreWorld()
+e2function number fsensor:isIgnoreWorld()
   if(not this) then return 0 end
   return (this.TrI.ignoreworld or 0)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:setIgnoreWorld(number nN)
+e2function fsensor fsensor:setIsIgnoreWorld(number nN)
   if(not this) then return nil end
   this.TrI.ignoreworld = (nN ~= 0); return this
 end
