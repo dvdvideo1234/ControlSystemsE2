@@ -30,14 +30,37 @@ local wikiType = {
   }
 }
 
+local wikiFormat = {
+  __tfm = "type-%s.jpg",
+  __rty = "ref-%s",
+  __rbr = "[ref-%s]: %s",
+  __ref = "![ref-%s]: %s",
+  __img = "![image][%s]"
+}
+
 local wikiRefer = { ["is"] = "n",
   __this = {"dump","res","set","upd","smp","add","rem","no","new"}
 }
 
+local function apiSortFinctionParam(a, b)
+  if(table.concat(a.par) < table.concat(b.par)) then return true end
+  return false
+end
+
+local function sorttMatch(tM)
+  table.sort(tM, apiSortFinctionParam)
+end
+
+local function apiGetValue(API, sTab, sKey, vDef)
+  local tTab = API[sTab]
+  local bTab = common.isTable(tTab)
+  return (bTab and tTab[sKey] or vDef)
+end
+
 function wikilib.setInternalType(API)
   local aT = wikiRefer.__this
   for ID = 1, #aT do local key = aT[ID]
-    wikiRefer[key] = tostring(API.TYPE.__obj or "xxx")
+    wikiRefer[key] = tostring(API.TYPE.OBJ or "xxx")
   end
 end
 
@@ -57,9 +80,9 @@ end
 
 function wikilib.printTypeReference(API)
   local tT = wikiType.list
-  local sL = API.TYPE.link
-  local sT = API.TYPE.__tfm
-  local fR = API.TYPE.__rbr
+  local sL = API.TYPE.LNK
+  local sT = wikiFormat.__tfm
+  local fR = wikiFormat.__rbr
   for ID = 1, #tT do
     io.write(fR:format(tT[ID][1], sL:format(sT:format(tT[ID][1]))).."\n")
   end; io.write("\n")
@@ -75,14 +98,14 @@ end
   bD > Dicable and return empry string
 ]]--
 function wikilib.concatType(API, sT, bP, bD)
-  if(bD) then return "" end
-  local sV = tostring(sT)
+  if(bD) then return "" end; local sV = tostring(sT)
   if(sV:sub(1,1) == "/") then sV = sV:sub(2,-1) end
-  bU = common.getPick(bP ~= nil, bP, API.TYPE.__pic)
+  local bIco = apiGetValue(API, "SETS", "icon")
+  local bU = common.getPick(bP ~= nil, bP, bIco)
   if(bU) then
-    local sL = API.TYPE.link
-    local sI = API.TYPE.__img
-    local sR = API.TYPE.__rty
+    local sL = apiGetValue(API,"TYPE","LNK")
+    local sI = wikiFormat.__img
+    local sR = wikiFormat.__rty
     local exp = common.stringExplode(sV, "/")
     for iN = 1, #exp do
       exp[iN] = sI:format(sR:format(exp[iN]))
@@ -94,9 +117,12 @@ function wikilib.concatType(API, sT, bP, bD)
 end
 
 function wikilib.readReturnValues(API)
-  local sN = tostring(API.FILE.base)..tostring(API.FILE.path)
+  local sBas = apiGetValue(API,"FILE","base")
+  local sPth = apiGetValue(API,"FILE","path")
+  local sE2  = apiGetValue(API,"TYPE","E2")
+  local sN = tostring(sBas)..tostring(sPth)
   if(sN:sub(-1,-1) ~= "/") then sN = sN.."/" end
-  sN = sN..API.TYPE.E2:lower().."_rt.txt"
+  sN = sN..sE2:lower().."_rt.txt"
   local fR = io.open(sN, "r")
   if(not fR) then return end
   local sL = fR:read("*line")
@@ -163,9 +189,12 @@ function wikilib.isValidMatch(tM)
 end
 
 function wikilib.makeReturnValues(API)
-  local sN = tostring(API.FILE.base)..tostring(API.FILE.slua)
-  if(sN:sub(-1,-1) ~= "/") then sN = sN.."/" end
-  sN = sN..API.TYPE.E2:lower()..".lua"
+  local sE2  = apiGetValue(API,"TYPE","E2")
+  local sBas = apiGetValue(API,"FILE","base")
+  local sLua = apiGetValue(API,"FILE","slua")
+  local sN = tostring(sBas)..tostring(sLua)
+  if(sN:sub(-1,-1) ~= "/") then
+    sN = sN.."/" end; sN = sN..sE2:lower()..".lua"
   local fR = io.open(sN, "r")
   if(not fR) then return logStatus("wikilib.makeReturnValues: No file <"..sN..">") end
   local sL, tF = fR:read("*line"), wikiMatch
@@ -188,22 +217,13 @@ end
 
 function wikilib.printTypeTable(API)
   local tT = wikiType.list
-  local fR = API.TYPE.__img
-  local sR = API.TYPE.__rty
+  local fR = wikiFormat.__img
+  local sR = wikiFormat.__rty
   wikilib.printRow({"Icon", "Description"})
   wikilib.printRow({"---", "---"})
   for ID = 1, #tT do
     wikilib.printRow({fR:format(sR:format(tT[ID][1])), tT[ID][2]})
   end; io.write("\n")
-end
-
-local function apiSortFinctionParam(a, b)
-  if(table.concat(a.par) < table.concat(b.par)) then return true end
-  return false
-end
-
-local function sorttMatch(tM)
-  table.sort(tM, apiSortFinctionParam)
 end
 
 function wikilib.printDescriptionTable(API, DSC, iN)
@@ -215,6 +235,9 @@ function wikilib.printDescriptionTable(API, DSC, iN)
     tC[ID] = common.stringCenter(tPool.cols[ID],tPool.size[ID],".")
   end; table.sort(tPool); tPool.data = {}
   wikilib.printRow(tC); wikilib.printRow(tH)
+  local bIco = apiGetValue(API, "SETS", "icon")
+  local bErr = apiGetValue(API, "SETS", "erro")
+  local sObj = apiGetValue(API, "TYPE", "OBJ")
   local sV = wikilib.convTypeE2Description(API,"void")[1]
   for i, n in ipairs(tPool) do
     local arg, vars, obj = n:match("%(.-%)"), "", ""
@@ -236,17 +259,21 @@ function wikilib.printDescriptionTable(API, DSC, iN)
     for rmk, rmv in pairs(wikiMatch) do
       if(n:find(rmk.."%(") and rmv.__top > 0) then
         if(not wikilib.isValidMatch(rmv)) then
-          if(API.SETS.__err) then
-            error("wikilib.printDescriptionTable: Duplicated function !")
-          end
+          if(bErr) then
+            error("wikilib.printDescriptionTable: Duplicated function !") end
         end
         local ret = ""; sorttMatch(rmv)
         for ID = 1, rmv.__top do
           local api = rmv[ID]; ret = api.ret
+          if(not DSC[api.com]) then
+            common.logStatus("wikilib.printDescriptionTable: Description missing <"..api.row..">")
+            if(bErr) then
+              error("wikilib.printDescriptionTable: Description missing !") end
+          end
           if(n == api.com) then
             if(ret == "") then local cap = rmk:find("%L", 1)
               if(n:find(API.NAME)) then
-                ret = "/"..API.TYPE.__obj
+                ret = "/"..sObj
               elseif(cap and wikiRefer[n:sub(1,cap-1)]) then
                 ret = "/"..wikiRefer[n:sub(1,cap-1)]
               else ret = "/"..sV end
