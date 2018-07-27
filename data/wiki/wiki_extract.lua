@@ -4,6 +4,9 @@ local wikilib = require('wikilib')
 
 local API = {
   NAME = "StControl",
+  SETS = {
+    __err = true
+  },
   POOL = {
     {name="MAKE",cols={"Instance.creator", "Out", "Description"},size={50,5,13}},
     {name="APPLY",cols={"Class.methods", "Out", "Description"},size={50,5,13}},
@@ -17,7 +20,6 @@ local API = {
     E2 = "stcontrol",
     __obj = "xsc",
     __pic = false,
-    __non = "xxx", -- None or missed type.. aka VOID
     __tfm = "type-%s.jpg",
     __rty = "ref-%s",
     __rbr = "[ref-%s]: %s",
@@ -78,11 +80,12 @@ E2Helper.Descriptions = {}
 
 ------------------------------------------------------PUT E2 DESCRIPTION HERE------------------------------------------------------
 
+
 ------------------------------------------------------PUT E2 DESCRIPTION HERE------------------------------------------------------
 
 wikilib.updateAPI(API, DSC)
 wikilib.makeReturnValues(API)
 wikilib.printDescriptionTable(API, DSC, 1)
 wikilib.printDescriptionTable(API, DSC, 2)
-wikilib.printTypeTable(API)
 wikilib.printTypeReference(API)
+wikilib.printTypeTable(API)

@@ -2,11 +2,6 @@ local common = require('common')
 
 local wikilib = {}
 
-local function apiSortFinctionParam(a, b)
-  if(table.concat(a.par) < table.concat(b.par)) then return true end
-  return false
-end
-
 function wikilib.updateAPI(API, DSC)
   local t = API.POOL[1]
   for n in pairs(DSC) do
@@ -27,12 +22,12 @@ function wikilib.printTypeReference(API)
   local sT = API.TYPE.__tfm
   local fR = API.TYPE.__rbr
   for ID = 1, #tT do
-    io.write("\n"..fR:format(tT[ID][1], sL:format(sT:format(tT[ID][1]))))
+    io.write(fR:format(tT[ID][1], sL:format(sT:format(tT[ID][1]))).."\n")
   end; io.write("\n")
 end
 
 function wikilib.printRow(tT)
-  io.write("\n|"..table.concat(tT, "|").."|")
+  io.write("|"..table.concat(tT, "|").."|\n")
 end
 
 --[[
@@ -80,21 +75,21 @@ function wikilib.readReturnValues(API)
 end
 
 function wikilib.convTypeE2Description(API, sT)
-  local tTyp = API.TYPE; return tTyp.list[tTyp.idx[sT]][1]
+  local tTyp = API.TYPE; return tTyp.list[tTyp.idx[sT]]
 end
 
 -- e2function stcontrol stcontrol:setPower(number nP, number nI, number nD)
 function wikilib.convApiE2Description(API, sE2)
   local sE = common.stringTrim(sE2)
   if(sE:sub(1,10) == "e2function") then
-    local tInfo, tTyp = {}, API.TYPE
+    local tInfo, tTyp = {}, API.TYPE; tInfo.row = sE2
     sE = common.stringTrim(sE:sub(11, -1))
     iS = sE:find("%s", 1)
-    tInfo.ret = wikilib.convTypeE2Description(API,common.stringTrim(sE:sub(1, iS)))
+    tInfo.ret = wikilib.convTypeE2Description(API,common.stringTrim(sE:sub(1, iS)))[1]
     sE = common.stringTrim(sE:sub(iS, -1))
     iS = sE:find(":", 1, true)
     if(iS) then
-      tInfo.obj = wikilib.convTypeE2Description(API,common.stringTrim(sE:sub(1, iS-1)))
+      tInfo.obj = wikilib.convTypeE2Description(API,common.stringTrim(sE:sub(1, iS-1)))[1]
       sE   = common.stringTrim(sE:sub(iS+1, -1))     
     end
     iS = sE:find("(", 1, true)
@@ -105,7 +100,7 @@ function wikilib.convApiE2Description(API, sE2)
       tInfo.par[ID] = common.stringTrim(tInfo.par[ID])
       iS = tInfo.par[ID]:find(" ", 1, true)
       if(not iS) then break end
-      tInfo.par[ID] = wikilib.convTypeE2Description(API,tInfo.par[ID]:sub(1, iS-1))
+      tInfo.par[ID] = wikilib.convTypeE2Description(API,tInfo.par[ID]:sub(1, iS-1))[1]
     end; tInfo.com = tInfo.foo.."("
     if(tInfo.obj) then
       tInfo.com = tInfo.com..tInfo.obj..":" end
@@ -113,6 +108,19 @@ function wikilib.convApiE2Description(API, sE2)
       tInfo.com = tInfo.com..tInfo.par[ID]
     end; tInfo.com = tInfo.com..")"; return tInfo
   end; return nil
+end
+
+function wikilib.isValidMatch(tM)
+  if(tM.__nam:sub(1,3) ~= "set") then return true end
+  local tL = {}; for ID = 1, tM.__top do local vM = tM[ID]
+    if(not tL[vM.com]) then tL[vM.com] = {} end
+    table.insert(tL[vM.com], ID)
+  end
+  for api, val in pairs(tL) do
+    local all = #val; if(all  > 1) then
+      return common.logStatus("wikilib.isValidMatch: API <"..api.."> doubled", false)
+    end
+  end; return true
 end
 
 function wikilib.makeReturnValues(API)
@@ -130,16 +138,12 @@ function wikilib.makeReturnValues(API)
       local mth = (foo:find(":") or  0)
       local brk = (foo:find("%(") or -1)
       foo = foo:sub(mth+1, brk-1)
-      local tP = tF[foo]
-      if(not tP) then tF[foo] = {__top = 0, __key = {}}; tP = tF[foo] end
-      local idx = API.TYPE.idx[typ]
-      local itp = API.TYPE.list[idx][1]
+      local tP = tF[foo]; if(not tP) then
+        tF[foo] = {__top = 0, __key = {}, __nam = foo}; tP = tF[foo] end
       tP.__top = tP.__top + 1
       local tInfo = wikilib.convApiE2Description(API, sL)
-      tP.__key[tInfo.com] = tP.__top
-      tP[tP.__top] = tInfo
-    end
-    sL = fR:read("*line")
+      tP.__key[tInfo.com] = tP.__top; tP[tP.__top] = tInfo
+    end; sL = fR:read("*line")
   end; return tF
 end
 
@@ -154,6 +158,15 @@ function wikilib.printTypeTable(API)
   end; io.write("\n")
 end
 
+local function apiSortFinctionParam(a, b)
+  if(table.concat(a.par) < table.concat(b.par)) then return true end
+  return false
+end
+
+local function sorttMatch(tM)
+  table.sort(tM, apiSortFinctionParam)
+end
+
 function wikilib.printDescriptionTable(API, DSC, iN)
   local tPool = API.POOL[iN]
   if(not tPool) then return end   
@@ -162,14 +175,15 @@ function wikilib.printDescriptionTable(API, DSC, iN)
     tH[ID] = ("-"):rep(common.getClamp((tPool.size[ID] or tPool.cols[ID]:len()), 3))
     tC[ID] = common.stringCenter(tPool.cols[ID],tPool.size[ID],".")
   end; table.sort(tPool); tPool.data = {}
-  wikilib.printRow(tC); wikilib.printRow(tH)  
+  wikilib.printRow(tC); wikilib.printRow(tH)
+  local sV = wikilib.convTypeE2Description(API,"void")[1]
   for i, n in ipairs(tPool) do
     local arg, vars, obj = n:match("%(.-%)"), "", ""
     if(arg) then arg = arg:sub(2,-2)
       local tsk = common.stringExplode(arg,":")
       if(not arg:find(":")) then
-        tsk[2], tsk[1] = tsk[1], API.TYPE.__non end
-      if(tsk[2] == "") then tsk[2] = API.TYPE.__non end
+        tsk[2], tsk[1] = tsk[1], sV end
+      if(tsk[2] == "") then tsk[2] = sV end
       tsk[1], tsk[2] = common.stringTrim(tsk[1]), common.stringTrim(tsk[2])
       local k, len = 1, tsk[2]:len(); obj = "/"..tsk[1]
       while(k <= len) do local sbc = tsk[2]:sub(k,k)
@@ -182,21 +196,22 @@ function wikilib.printDescriptionTable(API, DSC, iN)
       
     for rmk, rmv in pairs(API.RETURN.MATCH) do
       if(n:find(rmk.."%(") and rmv.__top > 0) then
-        local ret = ""; table.sort(rmv, apiSortFinctionParam)
+        if(API.SETS.__err and not wikilib.isValidMatch(rmv)) then
+          error("wikilib.printDescriptionTable: Duplicated function !")
+        end
+        local ret = ""; sorttMatch(rmv)
         for ID = 1, rmv.__top do
           local api = rmv[ID]; ret = api.ret
           if(n == api.com) then
             if(ret == "") then
               if(n:find(API.NAME)) then
                 ret = "/"..API.TYPE.__obj
-              elseif(cap and API.RETURN.PREF[n:sub(1,cap-1)]) then print(12)
+              elseif(cap and API.RETURN.PREF[n:sub(1,cap-1)]) then
                 ret = "/"..API.RETURN.PREF[n:sub(1,cap-1)]
-              else
-                ret = "/"..API.TYPE.__non
-              end
+              else ret = "/"..sV end
             end
             
-            if(obj:find(API.TYPE.__non)) then
+            if(obj:find(sV)) then
               wikilib.printRow({n:gsub("%(.-%)", "("..wikilib.concatType(API, vars, true)
                     ..")"), wikilib.concatType(API, ret, true), DSC[n]})      
             else

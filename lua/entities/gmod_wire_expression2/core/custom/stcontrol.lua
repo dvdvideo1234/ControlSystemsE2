@@ -420,17 +420,17 @@ e2function number stcontrol:getWindupU()
 end
 
 __e2setcost(8)
-e2function stcontrol stcontrol:setPower(number nP)
+e2function stcontrol stcontrol:setPowerP(number nP)
   return setStControlPower(this, nP, nil, nil)
 end
 
 __e2setcost(8)
-e2function stcontrol stcontrol:setPower(number nI)
+e2function stcontrol stcontrol:setPowerI(number nI)
   return setStControlPower(this, nil, nI, nil)
 end
 
 __e2setcost(8)
-e2function stcontrol stcontrol:setPower(number nD)
+e2function stcontrol stcontrol:setPowerD(number nD)
   return setStControlPower(this, nil, nil, nD)
 end
 
@@ -445,7 +445,7 @@ e2function stcontrol stcontrol:setPowerPI(vector2 vV)
 end
 
 __e2setcost(8)
-e2function stcontrol stcontrol:setPowerPI(vector2 aA)
+e2function stcontrol stcontrol:setPowerPI(array aA)
   return setStControlPower(this, aA[1], aA[2], nil)
 end
 
@@ -460,7 +460,7 @@ e2function stcontrol stcontrol:setPowerPD(vector2 vV)
 end
 
 __e2setcost(8)
-e2function stcontrol stcontrol:setPowerPD(vector2 aA)
+e2function stcontrol stcontrol:setPowerPD(array aA)
   return setStControlPower(this, aA[1], nil, aA[2])
 end
 
@@ -475,7 +475,7 @@ e2function stcontrol stcontrol:setPowerID(vector2 vV)
 end
 
 __e2setcost(8)
-e2function stcontrol stcontrol:setPowerID(vector2 aA)
+e2function stcontrol stcontrol:setPowerID(array aA)
   return setStControlPower(this, nil, aA[1], aA[2])
 end
 
