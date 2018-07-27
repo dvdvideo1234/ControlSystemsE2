@@ -2,6 +2,45 @@ local common = require('common')
 
 local wikilib = {}
 
+local wikiMatch = {}
+local wikiType = {
+  list = {
+    {"a", "Angle"},
+    {"e", "Entity"},
+    {"n", "Number"},
+    {"r", "Array"},
+    {"s", "String"},
+    {"v", "Vector 3D"},
+    {"xv2", "Vactor 2D"},
+    {"xfs", "Flash sensor class"},
+    {"xsc", "State controller class"},
+    {"xxx", "Void value "}
+  },
+  idx = {
+    ["angle"]     = 1,
+    ["entity"]    = 2,
+    ["number"]    = 3,
+    ["array"]     = 4,
+    ["string"]    = 5,
+    ["vector"]    = 6,
+    ["vector2"]   = 7,
+    ["fsensor"]   = 8,
+    ["stcontrol"] = 9,
+    ["void"]      = 10
+  }
+}
+
+local wikiRefer = { ["is"] = "n",
+  __this = {"dump","res","set","upd","smp","add","rem","no","new"}
+}
+
+function wikilib.setInternalType(API)
+  local aT = wikiRefer.__this
+  for ID = 1, #aT do local key = aT[ID]
+    wikiRefer[key] = tostring(API.TYPE.__obj or "xxx")
+  end
+end
+
 function wikilib.updateAPI(API, DSC)
   local t = API.POOL[1]
   for n in pairs(DSC) do
@@ -17,7 +56,7 @@ function wikilib.updateAPI(API, DSC)
 end
 
 function wikilib.printTypeReference(API)
-  local tT = API.TYPE.list
+  local tT = wikiType.list
   local sL = API.TYPE.link
   local sT = API.TYPE.__tfm
   local fR = API.TYPE.__rbr
@@ -68,14 +107,14 @@ function wikilib.readReturnValues(API)
       tT[1] = common.stringTrim(tostring(tT[1]))
       tT[2] = common.stringTrim(tostring(tT[2]))
       print("wikilib.readReturnValues", tT[1], tT[2])
-      API.RETURN.MATCH[tT[1]] = tT[2]
+      wikiMatch[tT[1]] = tT[2]
     end
     sL = fR:read("*line")
   end
 end
 
 function wikilib.convTypeE2Description(API, sT)
-  local tTyp = API.TYPE; return tTyp.list[tTyp.idx[sT]]
+  return wikiType.list[wikiType.idx[sT]]
 end
 
 -- e2function stcontrol stcontrol:setPower(number nP, number nI, number nD)
@@ -129,7 +168,7 @@ function wikilib.makeReturnValues(API)
   sN = sN..API.TYPE.E2:lower()..".lua"
   local fR = io.open(sN, "r")
   if(not fR) then return logStatus("wikilib.makeReturnValues: No file <"..sN..">") end
-  local sL, tF = fR:read("*line"), API.RETURN.MATCH
+  local sL, tF = fR:read("*line"), wikiMatch
   while(sL ~= nil) do
     local sT = common.stringTrim(sL)
     if(sL:find("e2function")) then
@@ -148,7 +187,7 @@ function wikilib.makeReturnValues(API)
 end
 
 function wikilib.printTypeTable(API)
-  local tT = API.TYPE.list
+  local tT = wikiType.list
   local fR = API.TYPE.__img
   local sR = API.TYPE.__rty
   wikilib.printRow({"Icon", "Description"})
@@ -194,20 +233,22 @@ function wikilib.printDescriptionTable(API, DSC, iN)
       end
     end
       
-    for rmk, rmv in pairs(API.RETURN.MATCH) do
+    for rmk, rmv in pairs(wikiMatch) do
       if(n:find(rmk.."%(") and rmv.__top > 0) then
-        if(API.SETS.__err and not wikilib.isValidMatch(rmv)) then
-          error("wikilib.printDescriptionTable: Duplicated function !")
+        if(not wikilib.isValidMatch(rmv)) then
+          if(API.SETS.__err) then
+            error("wikilib.printDescriptionTable: Duplicated function !")
+          end
         end
         local ret = ""; sorttMatch(rmv)
         for ID = 1, rmv.__top do
           local api = rmv[ID]; ret = api.ret
           if(n == api.com) then
-            if(ret == "") then
+            if(ret == "") then local cap = rmk:find("%L", 1)
               if(n:find(API.NAME)) then
                 ret = "/"..API.TYPE.__obj
-              elseif(cap and API.RETURN.PREF[n:sub(1,cap-1)]) then
-                ret = "/"..API.RETURN.PREF[n:sub(1,cap-1)]
+              elseif(cap and wikiRefer[n:sub(1,cap-1)]) then
+                ret = "/"..wikiRefer[n:sub(1,cap-1)]
               else ret = "/"..sV end
             end
             
