@@ -2,11 +2,50 @@ local common = require('common')
 common.addPathLibrary("E:/Documents/Lua-Projs/ZeroBraineIDE/myprograms/wiki-extract","*.lua")
 local wikilib = require('wikilib')
 
+-- https://raw.githubusercontent.com/wiki/wiremod/wire/Type-Matrix4.png
+
+wikilib.setFormat("tfm", "Type-%s.png")
+
+local API = {
+  -- Wire prop core
+  NAME = "StControl",
+  SETS = {
+    icon = false, -- Use icons for arguments
+    erro = true,  -- Generate an error on dupe of no docs
+    extr = true,  -- Use the external wire types
+    remv = true   -- Replace void type with empty string
+  },
+  POOL = {
+    {name="MAKE",cols={"Instance.creator", "Out", "Description"},size={50,5,13}},
+    {name="APPLY",cols={"Prop core function", "Out", "Description"},size={50,5,13}},
+  },
+  FILE = {
+    base = "E:/Documents/Lua-Projs/SVN/Wire/",
+    path = "data/wiki",
+    slua = "lua/entities/gmod_wire_expression2/core/custom/"
+  },
+  TYPE = {
+    E2 = "prop",
+    LNK = "https://raw.githubusercontent.com/wiki/wiremod/wire/%s"
+  },
+
+  REPLACE = {
+    __key = "###", -- The key tells what patternis to be raplaced
+    ["MASK"] = "[###](https://wiki.garrysmod.com/page/Enums/###)",
+    ["COLLISION_GROUP"] = "[###](https://wiki.garrysmod.com/page/Enums/###)",
+    ["Material_surface_properties"] = "[###](https://developer.valvesoftware.com/wiki/###)"
+  }
+}
+
+--[==[
+-- stcontrol, fsensor
 local API = {
   NAME = "StControl",
   SETS = {
-    icon = false,
-    erro = true
+    icon = false, -- Use icons for arguments
+    erro = true,  -- Generate an error on dupe of no docs
+    extr = true,  -- Use the external wire types
+    remv = false  -- Replace void type with empty string
   },
   POOL = {
     {name="MAKE",cols={"Instance.creator", "Out", "Description"},size={50,5,13}},
@@ -30,21 +69,21 @@ local API = {
   }
 }
 
-
+]==]
 
 local E2Helper = {}
 E2Helper.Descriptions = {}
 
 ------------------------------------------------------PUT E2 DESCRIPTION HERE------------------------------------------------------
 
-
-
 ------------------------------------------------------PUT E2 DESCRIPTION HERE------------------------------------------------------
+
+
 wikilib.setInternalType(API)
 wikilib.updateAPI(API, DSC)
 local ret = wikilib.makeReturnValues(API)
 wikilib.printDescriptionTable(API, DSC, 1)
 wikilib.printDescriptionTable(API, DSC, 2)
-wikilib.printTypeReference(API)
 wikilib.printTypeTable(API)
+wikilib.printTypeReference(API)
 -- common.logTable(ret, "ret")

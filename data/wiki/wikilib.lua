@@ -5,16 +5,17 @@ local wikilib = {}
 local wikiMatch = {}
 local wikiType = {
   list = {
-    {"a", "Angle"},
-    {"e", "Entity"},
-    {"n", "Number"},
-    {"r", "Array"},
-    {"s", "String"},
-    {"v", "Vector 3D"},
-    {"xv2", "Vactor 2D"},
-    {"xfs", "Flash sensor class"},
-    {"xsc", "State controller class"},
-    {"xxx", "Void value "}
+    {"a"  , "Angle"  , "Angle"},
+    {"e"  , "Entity" , "Entity"},
+    {"n"  , "Number" , "Number"},
+    {"r"  , "Array"  , "Array"},
+    {"s"  , "String" , "String"},
+    {"v"  , "Vector" , "Vector 3D"},
+    {"xv2", "Vector2", "Vactor 2D"},
+    {"xfs", ""       , "Flash sensor class"},
+    {"xsc", ""       , "State controller class"},
+    {"t"  , "Table"  , "Hash table/array"},
+    {"xxx", ""       , "Void value "}
   },
   idx = {
     ["angle"]     = 1,
@@ -26,21 +27,47 @@ local wikiType = {
     ["vector2"]   = 7,
     ["fsensor"]   = 8,
     ["stcontrol"] = 9,
-    ["void"]      = 10
+    ["table"]     = 10,
+    ["void"]      = 11
   }
 }
 
 local wikiFormat = {
   __tfm = "type-%s.jpg",
   __rty = "ref-%s",
-  __rbr = "[ref-%s]: %s",
-  __ref = "![ref-%s]: %s",
-  __img = "![image][%s]"
+  __rbr = "[%s]: %s",
+  __lnk = "[%s](%s)",
+  __ins = "!%s",
+  __img = "[image][%s]"
 }
 
 local wikiRefer = { ["is"] = "n",
   __this = {"dump","res","set","upd","smp","add","rem","no","new"}
 }
+
+local function toType(...)
+  return wikiFormat.__tfm:format(...)
+end
+
+local function toLinkURL(...)
+  return wikiFormat.__lnk:format(...)
+end
+
+local function toLinkRef(...)
+  return wikiFormat.__rbr:format(...)
+end
+
+local function toRefer(...)
+  return (wikiFormat.__rty:format(...))
+end
+
+local function toImage(...)
+  return (wikiFormat.__img:format(...))
+end
+
+local function toInsert(...)
+  return (wikiFormat.__ins:format(...))
+end
 
 local function apiSortFinctionParam(a, b)
   if(table.concat(a.par) < table.concat(b.par)) then return true end
@@ -57,6 +84,10 @@ local function apiGetValue(API, sTab, sKey, vDef)
   return (bTab and tTab[sKey] or vDef)
 end
 
+function wikilib.setFormat(sK, sS)
+  wikiFormat["__"..sK] = sS
+end
+
 function wikilib.setInternalType(API)
   local aT = wikiRefer.__this
   for ID = 1, #aT do local key = aT[ID]
@@ -68,7 +99,6 @@ function wikilib.updateAPI(API, DSC)
   local t = API.POOL[1]
   for n in pairs(DSC) do
     if(n:find(API.NAME)) then t = API.POOL[1] else t = API.POOL[2] end
-    DSC[n] = DSC[n]:gsub("/","`")
     for k in pairs(API.REPLACE) do
       if(DSC[n]:find(k)) then
         DSC[n] = DSC[n]:gsub(k, API.REPLACE[k]:gsub(API.REPLACE.__key, k))
@@ -78,13 +108,11 @@ function wikilib.updateAPI(API, DSC)
   end
 end
 
-function wikilib.printTypeReference(API)
-  local tT = wikiType.list
-  local sL = API.TYPE.LNK
-  local sT = wikiFormat.__tfm
-  local fR = wikiFormat.__rbr
-  for ID = 1, #tT do
-    io.write(fR:format(tT[ID][1], sL:format(sT:format(tT[ID][1]))).."\n")
+function wikilib.printTypeReference(API, bExt)
+  local tT, sL = wikiType.list, API.TYPE.LNK
+  local bE = API.SETS.extr -- Use external wire types
+  for ID = 1, #tT do local iDx = (bE and 2 or 1)
+    io.write(toLinkRef(toRefer(tT[ID][1]), sL:format(toType(tT[ID][iDx]))).."\n")
   end; io.write("\n")
 end
 
@@ -100,15 +128,19 @@ end
 function wikilib.concatType(API, sT, bP, bD)
   if(bD) then return "" end; local sV = tostring(sT)
   if(sV:sub(1,1) == "/") then sV = sV:sub(2,-1) end
+  local sVo = wikilib.convTypeE2Description(API, "void")[1]
+  local bVo = API.SETS.remv
+  if(bVo and sV == sVo) then return "" end
   local bIco = apiGetValue(API, "SETS", "icon")
   local bU = common.getPick(bP ~= nil, bP, bIco)
   if(bU) then
     local sL = apiGetValue(API,"TYPE","LNK")
-    local sI = wikiFormat.__img
-    local sR = wikiFormat.__rty
     local exp = common.stringExplode(sV, "/")
     for iN = 1, #exp do
-      exp[iN] = sI:format(sR:format(exp[iN]))
+      if(bVo and exp[iN] == sVo) then exp[iN] = ""
+      else
+        exp[iN] = toInsert(toImage(toRefer(exp[iN])))
+      end
     end
     return table.concat(exp, ",")
   else
@@ -200,29 +232,31 @@ function wikilib.makeReturnValues(API)
   local sL, tF = fR:read("*line"), wikiMatch
   while(sL ~= nil) do
     local sT = common.stringTrim(sL)
-    if(sL:find("e2function")) then
-      local tL = common.stringExplode(sL, " ")
-      local typ, foo = tL[2], tL[3]
-      local mth = (foo:find(":") or  0)
-      local brk = (foo:find("%(") or -1)
-      foo = foo:sub(mth+1, brk-1)
-      local tP = tF[foo]; if(not tP) then
-        tF[foo] = {__top = 0, __key = {}, __nam = foo}; tP = tF[foo] end
-      tP.__top = tP.__top + 1
-      local tInfo = wikilib.convApiE2Description(API, sL)
-      tP.__key[tInfo.com] = tP.__top; tP[tP.__top] = tInfo
-    end; sL = fR:read("*line")
+    local tE = common.stringExplode(sT, "=")
+    for ID = 1, 1 do local fL = common.stringTrim(tE[ID])
+      if(fL:find("e2function")) then
+        local tL = common.stringExplode(fL, " ")
+        local typ, foo = tL[2], tL[3]
+        local mth = (foo:find(":") or  0)
+        local brk = (foo:find("%(") or -1)
+        foo = foo:sub(mth+1, brk-1)
+        local tP = tF[foo]; if(not tP) then
+          tF[foo] = {__top = 0, __key = {}, __nam = foo}; tP = tF[foo] end
+        tP.__top = tP.__top + 1
+        local tInfo = wikilib.convApiE2Description(API, fL)
+        tP.__key[tInfo.com] = tP.__top; tP[tP.__top] = tInfo
+      end
+    end
+    sL = fR:read("*line")
   end; return tF
 end
 
 function wikilib.printTypeTable(API)
   local tT = wikiType.list
-  local fR = wikiFormat.__img
-  local sR = wikiFormat.__rty
   wikilib.printRow({"Icon", "Description"})
   wikilib.printRow({"---", "---"})
   for ID = 1, #tT do
-    wikilib.printRow({fR:format(sR:format(tT[ID][1])), tT[ID][2]})
+    wikilib.printRow({toInsert(toImage(toRefer(tT[ID][1]))), tT[ID][3]})
   end; io.write("\n")
 end
 
@@ -267,6 +301,7 @@ function wikilib.printDescriptionTable(API, DSC, iN)
           local api = rmv[ID]; ret = api.ret
           if(not DSC[api.com]) then
             common.logStatus("wikilib.printDescriptionTable: Description missing <"..api.row..">")
+            common.logStatus("wikilib.printDescriptionTable: API missing <"..api.com..">")
             if(bErr) then
               error("wikilib.printDescriptionTable: Description missing !") end
           end
