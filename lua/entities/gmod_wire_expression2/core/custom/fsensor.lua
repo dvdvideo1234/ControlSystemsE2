@@ -45,7 +45,8 @@ local gtMethList, gsVar = {}, "wire_expression2_fsensor" -- Placeholder for blac
 local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
 local varMethSkip = CreateConVar(gsVar.."_skip", gsStrEmpty, gnServContr, "E2 FSensor entity method black list")
 local varMethOnly = CreateConVar(gsVar.."_only", gsStrEmpty, gnServContr, "E2 FSensor entity method white list")
-local gsVNS, gsVNO = varMethSkip:GetName(), varMethOnly:GetName()
+local varMaxTotal = CreateConVar(gsVar.."_max" , 30, gnServContr, "E2 FSensor maximum count")
+local gsVNS, gsVNO, gnTFS = varMethSkip:GetName(), varMethOnly:GetName(), 0
 
 local function isEntity(vE)
   return (vE and vE:IsValid())
@@ -53,6 +54,10 @@ end
 
 local function isHere(vV)
   return (vV ~= nil)
+end
+
+local function remValue(tSrc, aKey)
+  tSrc[aKey] = nil; collectgarbage();
 end
 
 local function logError(sM, ...)
@@ -68,7 +73,7 @@ local function convArrayKeys(tA)
   if(not next(tA)) then return nil end
   local nE = #tA; for ID = 1, #tA do local key = tA[ID]
     if(not gsVarEmpty[key]) then
-      tA[key] = true end; tA[ID] = nil
+      tA[key] = true end; remValue(tA, ID)
   end; return ((tA and next(tA)) and tA or nil)
 end
 
@@ -149,14 +154,13 @@ local function newFSensorHitFilter(oFSen, oChip, sM)
   local tHit = oFSen.Hit; if(tHit.__ID[sM]) then -- Check for available method
     return logError("newFSensorHitFilter: Method <"..sM.."> exists", 0) end
   tHit.__top = (tHit.__top + 1); tHit[tHit.__top] = {CALL=sM}
-  tHit.__ID[sM] = tHit.__top; return (tHit.__top)
+  tHit.__ID[sM] = tHit.__top; collectgarbage(); return (tHit.__top)
 end
 
 local function remFSensorHitFilter(oFSen, sM)
   if(not oFSen) then return nil end
   local tHit = oFSen.Hit; tHit.__top = (tHit.__top - 1)
-  tableRemove(tHit, tHit.__ID[sM])
-  tHit.__ID[sM] = nil; return oFSen
+  tableRemove(tHit, tHit.__ID[sM]); remValue(tHit.__ID,sM); return oFSen
 end
 
 local function setFSensorHitFilter(oFSen, oChip, sM, sO, vV, bS)
@@ -171,17 +175,16 @@ local function setFSensorHitFilter(oFSen, oChip, sM, sO, vV, bS)
   if(not tID[sO]) then tID[sO] = {} end
   if(sM:sub(1,2) == "Is" and sTyp == "number") then 
     tID[sO][((vV ~= 0) and 1 or 0)] = bS
-  else tID[sO][vV] = bS end; return oFSen
+  else tID[sO][vV] = bS end; collectgarbage(); return oFSen
 end
 
-local function convHitValue(oEnt, sM)
-  local vV = oEnt[sM](oEnt)
-  if(sM:sub(1,2) == "Is") then
-    vV = gtBoolToNum[vV]
-  end; return vV
+local function convHitValue(oEnt, sM) local vV = oEnt[sM](oEnt)
+  if(sM:sub(1,2) == "Is") then vV = gtBoolToNum[vV] end; return vV
 end
 
 local function makeFSensor(vEnt, vPos, vDir, nLen)
+  if(gnTFS >= varMaxTotal:GetInt()) then 
+    return logError("makeFSensor: Count reached ["..gnTFS.."]", nil) end
   local oFSen = {Hit = {__top=0, __ID={}}}
   if(isEntity(vEnt)) then oFSen.Ent = vEnt -- Store attachment entity to manage local sampling
     oFSen.Hit.Ent = {SKIP={[vEnt]=true},ONLY={}} -- Store the base entity for ignore
@@ -214,7 +217,7 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
       end; return true -- Finally we register the trace hit enabled
     end, ignoreworld = false, -- Should the trace ignore world or not
     collisiongroup = COLLISION_GROUP_NONE } -- Collision group control
-  return oFSen
+  gnTFS = (gnTFS + 1); collectgarbage(); return oFSen
 end
 
 --[[ **************************** TRACER **************************** ]]
@@ -290,7 +293,7 @@ __e2setcost(3)
 e2function fsensor fsensor:remEntityHitSkip(entity vE)
   if(not this) then return nil end
   if(not isEntity(vE)) then return nil end
-  this.Hit.Ent.SKIP[vE] = nil; return this
+  remValue(this.Hit.Ent.SKIP, vE); return this
 end
 
 __e2setcost(3)
@@ -304,7 +307,7 @@ __e2setcost(3)
 e2function fsensor fsensor:remEntityHitOnly(entity vE)
   if(not this) then return nil end
   if(not isEntity(vE)) then return nil end
-  this.Hit.Ent.ONLY[vE] = nil; return this
+  remValue(this.Hit.Ent.ONLY, vE); return this
 end
 
 --[[ **************************** FILTER **************************** ]]
@@ -370,7 +373,7 @@ __e2setcost(3)
 e2function fsensor fsensor:setAttachEntity(entity eE)
   if(not this) then return nil end; local vE = this.Ent
   if(not isEntity(eE)) then return this end
-  if(isEntity(vE)) then this.HEnt.SKIP[vE] = nil end
+  if(isEntity(vE)) then remValue(this.HEnt.SKIP, vE) end
   this.Ent = eE; this.HEnt.SKIP[eE] = true; return this
 end
 

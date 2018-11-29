@@ -29,12 +29,17 @@ registerType("stcontrol", "xsc", nil,
 
 E2Lib.RegisterExtension("stcontrol", true, "Lets E2 chips have dedicated state control objects")
 
-local gtTermMiss = {"Xx", "X"} -- Contains the default return values for the control invalid type
+local gtTermMiss, gnTFS = {"Xx", "X"}, 0 -- Contains the default return values for the control invalid type
 local gtTermCodes = {"P", "I", "D"} -- The names of each term. This is used for indexing and checking
 local gsPowerForm = "(%s%s%s)" -- The general type format for the control power setup
+local varMaxTotal = CreateConVar(gsVar.."_max" , 20, gnServContr, "E2 StControl maximum count")
 
 local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
 local function getValue(kV,eV,pV) return (kV*getSign(eV)*mathAbs(eV)^pV) end
+
+local function remValue(tSrc, aKey)
+  tSrc[aKey] = nil; collectgarbage();
+end
 
 local function logError(sM, ...)
   outError("E2:stcontrol:"..tostring(sM)); return ...
@@ -58,10 +63,10 @@ local function setStControlGains(oStCon, vP, vI, vD, bZ)
   for key, val in pairs(gtTermCodes) do
     if(oStCon["mk"..val] > 0) then sT = sT..val end end
   if(sT:len() == 0) then sT = gtTermMiss[2]:rep(3) end -- Check for invalid control
-  oStCon.mType[2] = sT; return oStCon
+  oStCon.mType[2] = sT; collectgarbage(); return oStCon
 end
 
-local function getPowerCode(nN)
+local function getCode(nN)
   local nW, nF = mathModf(nN, 1)
   if(nN == 1) then return "Nr" end -- [Natural conventional][y=k*x]
   if(nN ==-1) then return "Rr" end -- [Reciprocal relation][y=1/k*x]
@@ -77,17 +82,13 @@ local function getPowerCode(nN)
   else
     if(nN > 0) then return "Ex" end -- [Exponential relation][y=x^n]
     if(nN < 0) then return "Er" end -- [Reciprocal-exp relation][y=1/x^n]
-  end
-  return gtTermMiss[1] -- [Invalid settings][N/A]
+  end; return gtTermMiss[1] -- [Invalid settings][N/A]
 end
 
 local function setStControlPower(oStCon, vP, vI, vD)
   if(not oStCon) then return logError("setStControlPower: Object missing", nil) end
-  oStCon.mpP = (tonumber(vP) or 1)
-  oStCon.mpI = (tonumber(vI) or 1)
-  oStCon.mpD = (tonumber(vD) or 1)
-  oStCon.mType[1] = gsPowerForm:format(getPowerCode(oStCon.mpP),
-    getPowerCode(oStCon.mpI), getPowerCode(oStCon.mpD))
+  oStCon.mpP, oStCon.mpI, oStCon.mpD = (tonumber(vP) or 1), (tonumber(vI) or 1), (tonumber(vD) or 1)
+  oStCon.mType[1] = gsPowerForm:format(getCode(oStCon.mpP), getCode(oStCon.mpI), getCode(oStCon.mpD))
   return oStCon
 end
 
@@ -107,9 +108,11 @@ local function getStControlType(oStCon)
 end
 
 local function makeStControl(nTo)
+  if(gnTFS >= varMaxTotal:GetInt()) then 
+    return logError("makeStControl: Count reached ["..gnTFS.."]", nil) end
   local oStCon = {}; oStCon.mnTo = tonumber(nTo) -- Place to store the object
   if(oStCon.mnTo and oStCon.mnTo <= 0) then -- Fixed sampling time delta check
-    return logError("makeStControl: Object delta mismatch ("..tostring(oStCon.mnTo)..")", nil) end
+    return logError("makeStControl: Delta mismatch ["..tostring(oStCon.mnTo).."]", nil) end
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
   oStCon.mErrO, oStCon.mErrN, oStCon.mType = 0, 0, {"(NrNrNr)",gtTermMiss[2]:rep(3)} -- Error state values
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true -- Control value and integral enabled
@@ -118,7 +121,7 @@ local function makeStControl(nTo)
   oStCon.mkP, oStCon.mkI, oStCon.mkD = 0, 0, 0 -- P, I and D term gains
   oStCon.mpP, oStCon.mpI, oStCon.mpD = 1, 1, 1 -- Raise the error to power of that much
   oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn, oStCon.mbMan = false, false, false, false
-  oStCon.mvMan = 0; return oStCon
+  oStCon.mvMan = 0; gnTFS = (gnTFS + 1); collectgarbage();  return oStCon
 end
 
 --[[ **************************** CONTROLLER **************************** ]]
@@ -380,19 +383,19 @@ end
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindup()
   if(not this) then return nil end
-  this.mSatD, this.mSatU = nil, nil; return this
+  remValue(this, "mSatD"); remValue(this, "mSatU"); return this
 end
 
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindupD()
   if(not this) then return nil end
-  this.mSatD = nil; return this
+  remValue(this, "mSatD"); return this
 end
 
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindupU()
   if(not this) then return nil end
-  this.mSatU = nil; return this
+  remValue(this, "mSatU"); return this
 end
 
 __e2setcost(3)
@@ -613,7 +616,7 @@ end
 __e2setcost(3)
 e2function stcontrol stcontrol:remTimeSample()
   if(not this) then return 0 end
-  this.mnTo = nil; return this
+  remValue(this, "mnTo"); return this
 end
 
 __e2setcost(3)
