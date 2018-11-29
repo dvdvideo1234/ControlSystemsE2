@@ -12,8 +12,17 @@ local getTime = CurTime -- Using this as time benchmarking for high precision
 local outError = error -- The function which generates error and prints it out
 local outPrint = print -- The function that outputs a string into the console
 
+local gtSet = {
+  TYP = {"stcontrol", "xsc"},
+  VAR = "wire_expression2_",
+  ID  = {__top = 0, __all = 0}, -- TOP > ID of the last taken. ALL > Total objects
+  FPW = "(%s%s%s)", -- The general type format for the control power setup
+  PID = {"P", "I", "D"}, -- The names of each term. This is used for indexing and checking
+  MIS = {"Xx", "X", "Nr"}
+}; gtSet.VAR = gtSet.VAR..gtSet.TYP[1]
+
 -- Register the type up here before the extension registration so that the state control still works
-registerType("stcontrol", "xsc", nil,
+registerType(gtSet.TYP[1], gtSet.TYP[2], nil,
   nil,
   nil,
   function(retval)
@@ -27,13 +36,10 @@ registerType("stcontrol", "xsc", nil,
 
 --[[ ****************************************************************************** ]] 
 
-E2Lib.RegisterExtension("stcontrol", true, "Lets E2 chips have dedicated state control objects")
+E2Lib.RegisterExtension(gtSet.TYP[1], true, "Lets E2 chips have dedicated state control objects")
 
-local gsVar = "wire_expression2_stcontrol"
-local gtTermMiss, gnTFS = {"Xx", "X"}, 0 -- Contains the default return values for the control invalid type
-local gtTermCodes = {"P", "I", "D"} -- The names of each term. This is used for indexing and checking
-local gsPowerForm = "(%s%s%s)" -- The general type format for the control power setup
-local varMaxTotal = CreateConVar(gsVar.."_max" , 20, gnServContr, "E2 StControl maximum count")
+local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
+local varMaxTotal = CreateConVar(gtSet.VAR.."_max" , 20, gnServContr, "E2 StControl maximum count")
 
 local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
 local function getValue(kV,eV,pV) return (kV*getSign(eV)*mathAbs(eV)^pV) end
@@ -51,7 +57,7 @@ local function logStatus(sM, ...)
 end
 
 local function setGains(oStCon, vP, vI, vD, bZ)
-  if(not oStCon) then return logError("setGains: Object missing", nil) end
+  if(not oStCon) then return logError("Object missing", nil) end
   local nP, nI = (tonumber(vP) or 0), (tonumber(vI) or 0)
   local nD, sT = (tonumber(vD) or 0), "" -- Store control type
   if(vP and ((nP > 0) or (bZ and nP >= 0))) then oStCon.mkP = nP end
@@ -61,15 +67,15 @@ local function setGains(oStCon, vP, vI, vD, bZ)
   if(vD and ((nD > 0) or (bZ and nD >= 0))) then oStCon.mkD = nD
     if(oStCon.mbCmb) then oStCon.mkD = oStCon.mkD * oStCon.mkP end
   end -- Build control type
-  for key, val in pairs(gtTermCodes) do
+  for key, val in pairs(gtSet.PID) do
     if(oStCon["mk"..val] > 0) then sT = sT..val end end
-  if(sT:len() == 0) then sT = gtTermMiss[2]:rep(3) end -- Check for invalid control
+  if(sT:len() == 0) then sT = gtSet.MIS[2]:rep(3) end -- Check for invalid control
   oStCon.mType[2] = sT; collectgarbage(); return oStCon
 end
 
 local function getCode(nN)
   local nW, nF = mathModf(nN, 1)
-  if(nN == 1) then return "Nr" end -- [Natural conventional][y=k*x]
+  if(nN == 1) then return gtSet.MIS[3] end -- [Natural conventional][y=k*x]
   if(nN ==-1) then return "Rr" end -- [Reciprocal relation][y=1/k*x]
   if(nN == 0) then return "Sr" end -- [Sign function relay term][y=k*sign(x)]
   if(nF ~= 0) then
@@ -83,18 +89,18 @@ local function getCode(nN)
   else
     if(nN > 0) then return "Ex" end -- [Exponential relation][y=x^n]
     if(nN < 0) then return "Er" end -- [Reciprocal-exp relation][y=1/x^n]
-  end; return gtTermMiss[1] -- [Invalid settings][N/A]
+  end; return gtSet.MIS[1] -- [Invalid settings][N/A]
 end
 
 local function setPower(oStCon, vP, vI, vD)
-  if(not oStCon) then return logError("setPower: Object missing", nil) end
+  if(not oStCon) then return logError("Object missing", nil) end
   oStCon.mpP, oStCon.mpI, oStCon.mpD = (tonumber(vP) or 1), (tonumber(vI) or 1), (tonumber(vD) or 1)
-  oStCon.mType[1] = gsPowerForm:format(getCode(oStCon.mpP), getCode(oStCon.mpI), getCode(oStCon.mpD))
+  oStCon.mType[1] = gtSet.FPW:format(getCode(oStCon.mpP), getCode(oStCon.mpI), getCode(oStCon.mpD))
   return oStCon
 end
 
 local function resState(oStCon)
-  if(not oStCon) then return logError("resState: Object missing", nil) end
+  if(not oStCon) then return logError("Object missing", nil) end
   oStCon.mErrO, oStCon.mErrN = 0, 0 -- Reset the error
   oStCon.mvCon, oStCon.meInt = 0, true -- Control value and integral enabled
   oStCon.mvP, oStCon.mvI, oStCon.mvD = 0, 0, 0 -- Term values
@@ -103,31 +109,36 @@ local function resState(oStCon)
 end
 
 local function getType(oStCon)
-  if(not oStCon) then local mP, mT = gtTermMiss[1], gtTermMiss[2]
-    return (gsPowerForm:format(mP,mP,mP).."-"..mT:rep(3))
+  if(not oStCon) then local mP, mT = gtSet.MIS[1], gtSet.MIS[2]
+    return (gtSet.FPW:format(mP,mP,mP).."-"..mT:rep(3))
   end; return tableConcat(oStCon.mType, "-")
 end
 
 local function newItem(nTo)
-  if(gnTFS >= varMaxTotal:GetInt()) then 
-    return logError("newItem: Count reached ["..gnTFS.."]", nil) end
+  local nTop, nAll = gtSet.ID.__top, gtSet.ID.__all
+  if(nAll >= varMaxTotal:GetInt()) then 
+    return logError("Count reached ["..nAll.."]", nil) end
   local oStCon = {}; oStCon.mnTo = tonumber(nTo) -- Place to store the object
   if(oStCon.mnTo and oStCon.mnTo <= 0) then -- Fixed sampling time delta check
-    return logError("newItem: Delta mismatch ["..tostring(oStCon.mnTo).."]", nil) end
+    return logError("Delta mismatch ["..tostring(oStCon.mnTo).."]", nil) end
+  local sT = gtSet.FPW:format(gtSet.MIS[3], gtSet.MIS[3], gtSet.MIS[3])
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
-  oStCon.mErrO, oStCon.mErrN, oStCon.mType = 0, 0, {"(NrNrNr)",gtTermMiss[2]:rep(3)} -- Error state values
+  oStCon.mErrO, oStCon.mErrN, oStCon.mType = 0, 0, {sT,gtSet.MIS[2]:rep(3)} -- Error state values
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true -- Control value and integral enabled
   oStCon.mBias, oStCon.mSatD, oStCon.mSatU = 0, nil, nil -- Saturation limits and settings
   oStCon.mvP, oStCon.mvI, oStCon.mvD = 0, 0, 0 -- Term values
   oStCon.mkP, oStCon.mkI, oStCon.mkD = 0, 0, 0 -- P, I and D term gains
   oStCon.mpP, oStCon.mpI, oStCon.mpD = 1, 1, 1 -- Raise the error to power of that much
   oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn, oStCon.mbMan = false, false, false, false
-  oStCon.mvMan = 0; gnTFS = (gnTFS + 1); collectgarbage();  return oStCon
+  oStCon.mvMan = 0 -- Configure manual mode and store indexing
+  nTop = (nTop + 1); oStCon.ID = nTop; gtSet.ID[nTop] = oStCon;
+  nAll = (nAll + 1); gtSet.ID.__top, gtSet.ID.__all = nTop, nAll
+  collectgarbage(); return oStCon
 end
 
 --[[ **************************** CONTROLLER **************************** ]]
 
-registerOperator("ass", "xsc", "xsc", function(self, args)
+registerOperator("ass", gtSet.TYP[2], gtSet.TYP[2], function(self, args)
   local lhs, op2, scope = args[2], args[3], args[4]
   local rhs = op2[1](self, op2)
   self.Scopes[scope][lhs] = rhs
@@ -150,8 +161,28 @@ e2function stcontrol newStControl(number nTo)
   return newItem(nTo)
 end
 
+__e2setcost(1)
+e2function number maxStControl()
+  return varMaxTotal:GetInt()
+end
+
+__e2setcost(1)
+e2function number allStControl()
+  return gtSet.ID.__all
+end
+
+__e2setcost(15)
+e2function number stcontrol:remove()
+  if(not this) then return 0 end
+  local nTop, nAll = gtSet.ID.__top, gtSet.ID.__all
+  if(this.ID == nTop) then nTop = (nTop - 1)
+    while(not gtSet.ID[nTop]) do nTop = (nTop - 1) end end
+  nAll = (nAll - 1); remValue(gtSet.ID, this.ID)
+  gtSet.ID.__top, gtSet.ID.__all = nTop, nAll; return 1
+end
+
 __e2setcost(20)
-e2function stcontrol stcontrol:copyFSensor()
+e2function stcontrol stcontrol:copy()
   return newItem(this.mnTo)
 end
 
@@ -777,7 +808,7 @@ end
 
 __e2setcost(15)
 e2function stcontrol stcontrol:dumpConsole(string sI)
-  logStatus("["..sI.."]["..tostring(this.mnTo or gtTermMiss[2]).."]["..getType(this).."]["..tostring(this.mTimN).."] Data:")
+  logStatus("["..sI.."]["..tostring(this.mnTo or gtSet.MIS[2]).."]["..getType(this).."]["..tostring(this.mTimN).."] Data:")
   logStatus(" Human: ["..tostring(this.mbMan).."] {V="..tostring(this.mvMan)..", B="..tostring(this.mBias).."}" )
   logStatus(" Gains: {P="..tostring(this.mkP)..", I="..tostring(this.mkI)..", D="..tostring(this.mkD).."}")
   logStatus(" Power: {P="..tostring(this.mpP)..", I="..tostring(this.mpI)..", D="..tostring(this.mpD).."}")

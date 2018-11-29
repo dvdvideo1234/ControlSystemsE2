@@ -18,8 +18,21 @@ local utilGetSurfacePropName = util.GetSurfacePropName
 local outError = error -- The function which generates error and prints it out
 local outPrint = print -- The function that outputs a string into the console
 
+local gtSet = {
+  TYP = {"fsensor", "xfs"},
+  VAR = "wire_expression2_",
+  ID  = {__top = 0, __all = 0}, -- TOP > ID of the last taken. ALL > Total objects
+  ZER = {
+    A = Angle (0,0,0), -- Dummy zero angle for transformations
+    V = Vector(0,0,0)  -- Dummy zero vector for transformations
+  },
+  MXL = 50000, -- The tracer maximum length just about one cube map
+  CBN = {[true]=1,[false]=0}, -- This is used to convert between GLua boolean and wire boolean
+  ECH = {["#empty"]=true,[gsStrEmpty]=true} -- Variable being set to empty string
+}; gtSet.VAR = gtSet.VAR..gtSet.TYP[1]
+
 -- Register the type up here before the extension registration so that the fsensor still works
-registerType("fsensor", "xfs", nil,
+registerType(gtSet.TYP[1], gtSet.TYP[2], nil,
   nil,
   nil,
   function(retval)
@@ -33,20 +46,15 @@ registerType("fsensor", "xfs", nil,
 
 --[[ ****************************************************************************** ]]
 
-E2Lib.RegisterExtension("fsensor", true, "Lets E2 chips trace ray attachments and check for hits.")
+E2Lib.RegisterExtension(gtSet.TYP[1], true, "Lets E2 chips trace ray attachments and check for hits.")
 
-local gaZero = Angle(0,0,0) -- Dummy zero angle for transformations
-local gvZero = Vector(0,0,0) -- Dummy zero vector for transformations
-local gnMaxLen = 50000 -- The tracer maximum length just about one cube map
 local gsStrEmpty = "" -- Empty string to use instead of creating one everywhere
-local gsVarEmpty = {["#empty"]=true,[gsStrEmpty]=true} -- Variable being set to empty string
-local gtBoolToNum = {[true]=1,[false]=0} -- This is used to convert between GLua boolean and wire boolean
-local gtMethList, gsVar = {}, "wire_expression2_fsensor" -- Placeholder for blacklist and convar prefix
+local gtMethList  = {} -- Placeholder for blacklist and convar prefix
 local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
-local varMethSkip = CreateConVar(gsVar.."_skip", gsStrEmpty, gnServContr, "E2 FSensor entity method black list")
-local varMethOnly = CreateConVar(gsVar.."_only", gsStrEmpty, gnServContr, "E2 FSensor entity method white list")
-local varMaxTotal = CreateConVar(gsVar.."_max" , 30, gnServContr, "E2 FSensor maximum count")
-local gsVNS, gsVNO, gnTFS = varMethSkip:GetName(), varMethOnly:GetName(), 0
+local varMethSkip = CreateConVar(gtSet.VAR.."_skip", gsStrEmpty, gnServContr, "E2 FSensor entity method black list")
+local varMethOnly = CreateConVar(gtSet.VAR.."_only", gsStrEmpty, gnServContr, "E2 FSensor entity method white list")
+local varMaxTotal = CreateConVar(gtSet.VAR.."_max" , 30, gnServContr, "E2 FSensor maximum count")
+local gsVNS, gsVNO = varMethSkip:GetName(), varMethOnly:GetName()
 
 local function isEntity(vE)
   return (vE and vE:IsValid())
@@ -72,7 +80,7 @@ local function convArrayKeys(tA)
   if(not tA) then return nil end
   if(not next(tA)) then return nil end
   local nE = #tA; for ID = 1, #tA do local key = tA[ID]
-    if(not gsVarEmpty[key]) then
+    if(not gtSet.ECH[key]) then
       tA[key] = true end; remValue(tA, ID)
   end; return ((tA and next(tA)) and tA or nil)
 end
@@ -117,9 +125,9 @@ local function convOrgUCS(oFSen, sF, vP, vA)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
   local oV, vN, aN = Vector(oO[1], oO[2], oO[3])
   if(sF == "LocalToWorld") then
-    vN, aN = LocalToWorld(oV, gaZero, vP, vA); oV:Set(vN)
+    vN, aN = LocalToWorld(oV, gtSet.ZER.A, vP, vA); oV:Set(vN)
   elseif(sF == "WorldToLocal") then
-    vN, aN = WorldToLocal(oV, gaZero, vP, vA); oV:Set(vN)
+    vN, aN = WorldToLocal(oV, gtSet.ZER.A, vP, vA); oV:Set(vN)
   end; return {oV[1], oV[2], oV[3]}
 end
 
@@ -144,15 +152,15 @@ end
 local function newHitFilter(oFSen, oChip, sM)
   if(not oFSen) then return 0 end -- Check for available method
   if(sM:sub(1,3) ~= "Get" and sM:sub(1,2) ~= "Is" and sM ~= gsStrEmpty) then
-    return logError("newHitFilter: Method <"..sM.."> disabled", 0) end
+    return logError("Method <"..sM.."> disabled", 0) end
   local tO = gtMethList.ONLY; if(tO and isHere(next(tO)) and not tO[sM]) then
-    return logError("newHitFilter: Method <"..sM.."> use only", 0) end
+    return logError("Method <"..sM.."> use only", 0) end
   local tS = gtMethList.SKIP; if(tS and isHere(next(tS)) and tS[sM]) then
-    return logError("newHitFilter: Method <"..sM.."> use skip", 0) end
+    return logError("Method <"..sM.."> use skip", 0) end
   if(not oChip.entity[sM]) then -- Check for available method
-    return logError("newHitFilter: Method <"..sM.."> mismatch", 0) end
+    return logError("Method <"..sM.."> mismatch", 0) end
   local tHit = oFSen.Hit; if(tHit.__ID[sM]) then -- Check for available method
-    return logError("newHitFilter: Method <"..sM.."> exists", 0) end
+    return logError("Method <"..sM.."> exists", 0) end
   tHit.__top = (tHit.__top + 1); tHit[tHit.__top] = {CALL=sM}
   tHit.__ID[sM] = tHit.__top; collectgarbage(); return (tHit.__top)
 end
@@ -171,7 +179,7 @@ local function setHitFilter(oFSen, oChip, sM, sO, vV, bS)
   end -- Obtain the current data index
   local tID = tHit[nID]; if(not tID.TYPE) then tID.TYPE = type(vV) end
   if(tID.TYPE ~= sTyp) then -- Check the current data type and prevent the user from messing up
-    return logError("setHitFilter: Type "..sTyp.." mismatch <"..tID.TYPE.."@"..sM..">", oFSen) end
+    return logError("Type "..sTyp.." mismatch <"..tID.TYPE.."@"..sM..">", oFSen) end
   if(not tID[sO]) then tID[sO] = {} end
   if(sM:sub(1,2) == "Is" and sTyp == "number") then 
     tID[sO][((vV ~= 0) and 1 or 0)] = bS
@@ -179,17 +187,18 @@ local function setHitFilter(oFSen, oChip, sM, sO, vV, bS)
 end
 
 local function convHitValue(oEnt, sM) local vV = oEnt[sM](oEnt)
-  if(sM:sub(1,2) == "Is") then vV = gtBoolToNum[vV] end; return vV
+  if(sM:sub(1,2) == "Is") then vV = gtSet.CBN[vV] end; return vV
 end
 
 local function newItem(vEnt, vPos, vDir, nLen)
-  if(gnTFS >= varMaxTotal:GetInt()) then 
-    return logError("newItem: Count reached ["..gnTFS.."]", nil) end
+  local nTop, nAll = gtSet.ID.__top, gtSet.ID.__all
+  if(nAll >= varMaxTotal:GetInt()) then 
+    return logError("Count reached ["..nAll.."]", nil) end
   local oFSen = {Hit = {__top=0, __ID={}}}
   if(isEntity(vEnt)) then oFSen.Ent = vEnt -- Store attachment entity to manage local sampling
     oFSen.Hit.Ent = {SKIP={[vEnt]=true},ONLY={}} -- Store the base entity for ignore
   else oFSen.Hit.Ent, oFSen.Ent = {SKIP={},ONLY={}}, nil end -- Make sure the entity is cleared
-  oFSen.Len = mathClamp(tonumber(nLen or 0),-gnMaxLen,gnMaxLen) -- How long the length is
+  oFSen.Len = mathClamp(tonumber(nLen or 0),-gtSet.MXL,gtSet.MXL) -- How long the length is
   -- Local tracer position the trace starts from
   oFSen.Pos = Vector(vPos[1],vPos[2],vPos[3])
   -- Local tracer direction to read the data of
@@ -217,12 +226,14 @@ local function newItem(vEnt, vPos, vDir, nLen)
       end; return true -- Finally we register the trace hit enabled
     end, ignoreworld = false, -- Should the trace ignore world or not
     collisiongroup = COLLISION_GROUP_NONE } -- Collision group control
-  gnTFS = (gnTFS + 1); collectgarbage(); return oFSen
+  nTop = (nTop + 1); oFSen.ID = nTop; gtSet.ID[nTop] = oFSen;
+  nAll = (nAll + 1); gtSet.ID.__top, gtSet.ID.__all = nTop, nAll
+  collectgarbage(); return oFSen
 end
 
 --[[ **************************** TRACER **************************** ]]
 
-registerOperator("ass", "xfs", "xfs", function(self, args)
+registerOperator("ass", gtSet.TYP[2], gtSet.TYP[2], function(self, args)
   local lhs, op2, scope = args[2], args[3], args[4]
   local rhs = op2[1](self, op2)
   self.Scopes[scope][lhs] = rhs
@@ -275,8 +286,29 @@ e2function fsensor newFSensor()
   return newItem(nil, {0,0,0}, {0,0,0}, 0)
 end
 
+__e2setcost(1)
+e2function number maxFSensor()
+  return varMaxTotal:GetInt()
+end
+
+__e2setcost(1)
+e2function number allFSensor()
+  return gtSet.ID.__all
+end
+
+__e2setcost(15)
+e2function number fsensor:remove()
+  if(not this) then return 0 end
+  local nTop, nAll = gtSet.ID.__top, gtSet.ID.__all
+  if(this.ID == nTop) then nTop = (nTop - 1)
+    while(not gtSet.ID[nTop]) do nTop = (nTop - 1) end end
+  nAll = (nAll - 1); remValue(gtSet.ID, this.ID)
+  gtSet.ID.__top, gtSet.ID.__all = nTop, nAll; return 1
+end
+
+
 __e2setcost(20)
-e2function fsensor fsensor:copyFSensor()
+e2function fsensor fsensor:copy()
   return newItem(this.Ent, this.Pos, this.Dir, this.Len)
 end
 
@@ -485,7 +517,7 @@ end
 __e2setcost(3)
 e2function fsensor fsensor:setLength(number nL)
   if(not this) then return nil end
-  this.Len = mathClamp(nL,-gnMaxLen,gnMaxLen)
+  this.Len = mathClamp(nL,-gtSet.MXL,gtSet.MXL)
   this.Dir:Normalize(); this.Dir:Mul(this.Len)
   this.Len = mathAbs(this.Len); return this
 end
