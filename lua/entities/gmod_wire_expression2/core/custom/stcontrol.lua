@@ -29,6 +29,7 @@ registerType("stcontrol", "xsc", nil,
 
 E2Lib.RegisterExtension("stcontrol", true, "Lets E2 chips have dedicated state control objects")
 
+local gsVar = "wire_expression2_stcontrol"
 local gtTermMiss, gnTFS = {"Xx", "X"}, 0 -- Contains the default return values for the control invalid type
 local gtTermCodes = {"P", "I", "D"} -- The names of each term. This is used for indexing and checking
 local gsPowerForm = "(%s%s%s)" -- The general type format for the control power setup
@@ -49,8 +50,8 @@ local function logStatus(sM, ...)
   outPrint(tostring(sM)); return ...
 end
 
-local function setStControlGains(oStCon, vP, vI, vD, bZ)
-  if(not oStCon) then return logError("setStControlGains: Object missing", nil) end
+local function setGains(oStCon, vP, vI, vD, bZ)
+  if(not oStCon) then return logError("setGains: Object missing", nil) end
   local nP, nI = (tonumber(vP) or 0), (tonumber(vI) or 0)
   local nD, sT = (tonumber(vD) or 0), "" -- Store control type
   if(vP and ((nP > 0) or (bZ and nP >= 0))) then oStCon.mkP = nP end
@@ -85,15 +86,15 @@ local function getCode(nN)
   end; return gtTermMiss[1] -- [Invalid settings][N/A]
 end
 
-local function setStControlPower(oStCon, vP, vI, vD)
-  if(not oStCon) then return logError("setStControlPower: Object missing", nil) end
+local function setPower(oStCon, vP, vI, vD)
+  if(not oStCon) then return logError("setPower: Object missing", nil) end
   oStCon.mpP, oStCon.mpI, oStCon.mpD = (tonumber(vP) or 1), (tonumber(vI) or 1), (tonumber(vD) or 1)
   oStCon.mType[1] = gsPowerForm:format(getCode(oStCon.mpP), getCode(oStCon.mpI), getCode(oStCon.mpD))
   return oStCon
 end
 
-local function resStControlState(oStCon)
-  if(not oStCon) then return logError("resStControlState: Object missing", nil) end
+local function resState(oStCon)
+  if(not oStCon) then return logError("resState: Object missing", nil) end
   oStCon.mErrO, oStCon.mErrN = 0, 0 -- Reset the error
   oStCon.mvCon, oStCon.meInt = 0, true -- Control value and integral enabled
   oStCon.mvP, oStCon.mvI, oStCon.mvD = 0, 0, 0 -- Term values
@@ -101,18 +102,18 @@ local function resStControlState(oStCon)
   return oStCon
 end
 
-local function getStControlType(oStCon)
+local function getType(oStCon)
   if(not oStCon) then local mP, mT = gtTermMiss[1], gtTermMiss[2]
     return (gsPowerForm:format(mP,mP,mP).."-"..mT:rep(3))
   end; return tableConcat(oStCon.mType, "-")
 end
 
-local function makeStControl(nTo)
+local function newItem(nTo)
   if(gnTFS >= varMaxTotal:GetInt()) then 
-    return logError("makeStControl: Count reached ["..gnTFS.."]", nil) end
+    return logError("newItem: Count reached ["..gnTFS.."]", nil) end
   local oStCon = {}; oStCon.mnTo = tonumber(nTo) -- Place to store the object
   if(oStCon.mnTo and oStCon.mnTo <= 0) then -- Fixed sampling time delta check
-    return logError("makeStControl: Delta mismatch ["..tostring(oStCon.mnTo).."]", nil) end
+    return logError("newItem: Delta mismatch ["..tostring(oStCon.mnTo).."]", nil) end
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
   oStCon.mErrO, oStCon.mErrN, oStCon.mType = 0, 0, {"(NrNrNr)",gtTermMiss[2]:rep(3)} -- Error state values
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true -- Control value and integral enabled
@@ -141,127 +142,127 @@ end
 
 __e2setcost(20)
 e2function stcontrol newStControl()
-  return makeStControl()
+  return newItem()
 end
 
 __e2setcost(20)
 e2function stcontrol newStControl(number nTo)
-  return makeStControl(nTo)
+  return newItem(nTo)
 end
 
 __e2setcost(20)
-e2function stcontrol stcontrol:copyStControl()
-  return makeStControl(this.mnTo)
+e2function stcontrol stcontrol:copyFSensor()
+  return newItem(this.mnTo)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainP(number nP)
-  return setStControlGains(this, nP, nil, nil)
+  return setGains(this, nP, nil, nil)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainI(number nI)
-  return setStControlGains(this, nil, nI, nil)
+  return setGains(this, nil, nI, nil)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainD(number nD)
-  return setStControlGains(this, nil, nil, nD)
+  return setGains(this, nil, nil, nD)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainPI(number nP, number nI)
-  return setStControlGains(this, nP, nI, nil)
+  return setGains(this, nP, nI, nil)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainPI(vector2 vV)
-  return setStControlGains(this, vV[1], vV[2], nil)
+  return setGains(this, vV[1], vV[2], nil)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainPI(array aA)
-  return setStControlGains(this, aA[1], aA[2], nil)
+  return setGains(this, aA[1], aA[2], nil)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainPD(number nP, number nD)
-  return setStControlGains(this, nP, nil, nD)
+  return setGains(this, nP, nil, nD)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainPD(vector2 vV)
-  return setStControlGains(this, vV[1], nil, vV[2])
+  return setGains(this, vV[1], nil, vV[2])
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainPD(array aA)
-  return setStControlGains(this, aA[1], nil, aA[2])
+  return setGains(this, aA[1], nil, aA[2])
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainID(number nI, number nD)
-  return setStControlGains(this, nil, nI, nD)
+  return setGains(this, nil, nI, nD)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainID(vector2 vV)
-  return setStControlGains(this, nil, vV[1], vV[2])
+  return setGains(this, nil, vV[1], vV[2])
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainID(array aA)
-  return setStControlGains(this, nil, aA[1], aA[2])
+  return setGains(this, nil, aA[1], aA[2])
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGain(number nP, number nI, number nD)
-  return setStControlGains(this, nP, nI, nD)
+  return setGains(this, nP, nI, nD)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGain(array aA)
-  return setStControlGains(this, aA[1], aA[2], aA[3])
+  return setGains(this, aA[1], aA[2], aA[3])
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGain(vector vV)
-  return setStControlGains(this, vV[1], vV[2], vV[3])
+  return setGains(this, vV[1], vV[2], vV[3])
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:remGainP()
-  return setStControlGains(this, 0, nil, nil, true)
+  return setGains(this, 0, nil, nil, true)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:remGainI()
-  return setStControlGains(this, nil, 0, nil, true)
+  return setGains(this, nil, 0, nil, true)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:remGainD()
-  return setStControlGains(this, nil, nil, 0, true)
+  return setGains(this, nil, nil, 0, true)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:remGainPI()
-  return setStControlGains(this, 0, 0, nil, true)
+  return setGains(this, 0, 0, nil, true)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:remGainPD()
-  return setStControlGains(this, 0, nil, 0, true)
+  return setGains(this, 0, nil, 0, true)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:remGainID()
-  return setStControlGains(this, nil, 0, 0, true)
+  return setGains(this, nil, 0, 0, true)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:remGain()
-  return setStControlGains(this, 0, 0, 0, true)
+  return setGains(this, 0, 0, 0, true)
 end
 
 __e2setcost(3)
@@ -344,7 +345,7 @@ end
 
 __e2setcost(3)
 e2function string stcontrol:getType()
-  return getStControlType(this)
+  return getType(this)
 end
 
 __e2setcost(3)
@@ -424,77 +425,77 @@ end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerP(number nP)
-  return setStControlPower(this, nP, nil, nil)
+  return setPower(this, nP, nil, nil)
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerI(number nI)
-  return setStControlPower(this, nil, nI, nil)
+  return setPower(this, nil, nI, nil)
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerD(number nD)
-  return setStControlPower(this, nil, nil, nD)
+  return setPower(this, nil, nil, nD)
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerPI(number nP, number nI)
-  return setStControlPower(this, nP, nI, nil)
+  return setPower(this, nP, nI, nil)
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerPI(vector2 vV)
-  return setStControlPower(this, vV[1], vV[2], nil)
+  return setPower(this, vV[1], vV[2], nil)
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerPI(array aA)
-  return setStControlPower(this, aA[1], aA[2], nil)
+  return setPower(this, aA[1], aA[2], nil)
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerPD(number nP, number nD)
-  return setStControlPower(this, nP, nil, nD)
+  return setPower(this, nP, nil, nD)
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerPD(vector2 vV)
-  return setStControlPower(this, vV[1], nil, vV[2])
+  return setPower(this, vV[1], nil, vV[2])
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerPD(array aA)
-  return setStControlPower(this, aA[1], nil, aA[2])
+  return setPower(this, aA[1], nil, aA[2])
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerID(number nI, number nD)
-  return setStControlPower(this, nil, nI, nD)
+  return setPower(this, nil, nI, nD)
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerID(vector2 vV)
-  return setStControlPower(this, nil, vV[1], vV[2])
+  return setPower(this, nil, vV[1], vV[2])
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPowerID(array aA)
-  return setStControlPower(this, nil, aA[1], aA[2])
+  return setPower(this, nil, aA[1], aA[2])
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPower(number nP, number nI, number nD)
-  return setStControlPower(this, nP, nI, nD)
+  return setPower(this, nP, nI, nD)
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPower(array aA)
-  return setStControlPower(this, aA[1], aA[2], aA[3])
+  return setPower(this, aA[1], aA[2], aA[3])
 end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPower(vector vV)
-  return setStControlPower(this, vV[1], vV[2], vV[3])
+  return setPower(this, vV[1], vV[2], vV[3])
 end
 
 __e2setcost(3)
@@ -743,7 +744,7 @@ end
 
 __e2setcost(3)
 e2function stcontrol stcontrol:resState()
-  return resStControlState(this)
+  return resState(this)
 end
 
 __e2setcost(20)
@@ -771,12 +772,12 @@ e2function stcontrol stcontrol:setState(number nR, number nY)
     else this.meInt = true end -- Saturation disables the integrator
     this.mvCon = (this.mvCon + this.mBias) -- Apply the saturated signal bias
     this.mTimB = (getTime() - this.mTimN) -- Benchmark the process
-  else return resStControlState(this) end; return this
+  else return resState(this) end; return this
 end
 
 __e2setcost(15)
 e2function stcontrol stcontrol:dumpConsole(string sI)
-  logStatus("["..sI.."]["..tostring(this.mnTo or gtTermMiss[2]).."]["..getStControlType(this).."]["..tostring(this.mTimN).."] Data:")
+  logStatus("["..sI.."]["..tostring(this.mnTo or gtTermMiss[2]).."]["..getType(this).."]["..tostring(this.mTimN).."] Data:")
   logStatus(" Human: ["..tostring(this.mbMan).."] {V="..tostring(this.mvMan)..", B="..tostring(this.mBias).."}" )
   logStatus(" Gains: {P="..tostring(this.mkP)..", I="..tostring(this.mkI)..", D="..tostring(this.mkD).."}")
   logStatus(" Power: {P="..tostring(this.mpP)..", I="..tostring(this.mpI)..", D="..tostring(this.mpD).."}")

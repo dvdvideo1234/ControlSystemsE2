@@ -87,7 +87,7 @@ cvars.AddChangeCallback(gsVNO, function(sVar, vOld, vNew)
   gtMethList.ONLY = convArrayKeys(("/"):Explode(tostring(vNew or gsStrEmpty)))
 end, gsVNO.."_call")
 
-local function convFSensorDirLocal(oFSen, vE, vA)
+local function convDirLocal(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
   local oD, oE = oFSen.Dir, (vE or oFSen.Ent)
   if(not (isEntity(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
@@ -95,7 +95,7 @@ local function convFSensorDirLocal(oFSen, vE, vA)
   return {oV:Dot(oA:Forward()), -oV:Dot(oA:Right()), oV:Dot(oA:Up())}
 end
 
-local function convFSensorDirWorld(oFSen, vE, vA)
+local function convDirWorld(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
   local oD, oE = oFSen.Dir, (vE or oFSen.Ent)
   if(not (isEntity(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
@@ -103,7 +103,7 @@ local function convFSensorDirWorld(oFSen, vE, vA)
   oV:Rotate(oA); return {oV[1], oV[2], oV[3]}
 end
 
-local function convFSensorOrgEnt(oFSen, sF, vE)
+local function convOrgEnt(oFSen, sF, vE)
   if(not oFSen) then return {0,0,0} end
   local oO, oE = oFSen.Pos, (vE or oFSen.Ent)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
@@ -111,7 +111,7 @@ local function convFSensorOrgEnt(oFSen, sF, vE)
   oV:Set(oE[sF](oE, oV)); return {oV[1], oV[2], oV[3]}
 end
 
-local function convFSensorOrgUCS(oFSen, sF, vP, vA)
+local function convOrgUCS(oFSen, sF, vP, vA)
   if(not oFSen) then return {0,0,0} end
   local oO, oE = oFSen.Pos, (vE or oFSen.Ent)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
@@ -130,7 +130,7 @@ end
  * 1) The status of the filter (1,2,3)
  * 2) The value to return for the status
 ]] local vHit, vSkp, vNop = true, nil, nil
-local function getFSensorHitStatus(oF, vK)
+local function getHitStatus(oF, vK)
   -- Skip current setting on empty data type
   if(not oF.TYPE) then return 1, vNop end
   local tO, tS = oF.ONLY, oF.SKIP
@@ -141,37 +141,37 @@ local function getFSensorHitStatus(oF, vK)
   return 1, vNop -- Check next setting on empty table
 end
 
-local function newFSensorHitFilter(oFSen, oChip, sM)
+local function newHitFilter(oFSen, oChip, sM)
   if(not oFSen) then return 0 end -- Check for available method
   if(sM:sub(1,3) ~= "Get" and sM:sub(1,2) ~= "Is" and sM ~= gsStrEmpty) then
-    return logError("newFSensorHitFilter: Method <"..sM.."> disabled", 0) end
+    return logError("newHitFilter: Method <"..sM.."> disabled", 0) end
   local tO = gtMethList.ONLY; if(tO and isHere(next(tO)) and not tO[sM]) then
-    return logError("newFSensorHitFilter: Method <"..sM.."> use only", 0) end
+    return logError("newHitFilter: Method <"..sM.."> use only", 0) end
   local tS = gtMethList.SKIP; if(tS and isHere(next(tS)) and tS[sM]) then
-    return logError("newFSensorHitFilter: Method <"..sM.."> use skip", 0) end
+    return logError("newHitFilter: Method <"..sM.."> use skip", 0) end
   if(not oChip.entity[sM]) then -- Check for available method
-    return logError("newFSensorHitFilter: Method <"..sM.."> mismatch", 0) end
+    return logError("newHitFilter: Method <"..sM.."> mismatch", 0) end
   local tHit = oFSen.Hit; if(tHit.__ID[sM]) then -- Check for available method
-    return logError("newFSensorHitFilter: Method <"..sM.."> exists", 0) end
+    return logError("newHitFilter: Method <"..sM.."> exists", 0) end
   tHit.__top = (tHit.__top + 1); tHit[tHit.__top] = {CALL=sM}
   tHit.__ID[sM] = tHit.__top; collectgarbage(); return (tHit.__top)
 end
 
-local function remFSensorHitFilter(oFSen, sM)
+local function remHitFilter(oFSen, sM)
   if(not oFSen) then return nil end
   local tHit = oFSen.Hit; tHit.__top = (tHit.__top - 1)
   tableRemove(tHit, tHit.__ID[sM]); remValue(tHit.__ID,sM); return oFSen
 end
 
-local function setFSensorHitFilter(oFSen, oChip, sM, sO, vV, bS)
+local function setHitFilter(oFSen, oChip, sM, sO, vV, bS)
   if(not oFSen) then return nil end
   local tHit, sTyp = oFSen.Hit, type(vV) -- Obtain hit filter location
   local nID = tHit.__ID[sM]; if(not isHere(nID)) then 
-    nID = newFSensorHitFilter(oFSen, oChip, sM)
+    nID = newHitFilter(oFSen, oChip, sM)
   end -- Obtain the current data index
   local tID = tHit[nID]; if(not tID.TYPE) then tID.TYPE = type(vV) end
   if(tID.TYPE ~= sTyp) then -- Check the current data type and prevent the user from messing up
-    return logError("setFSensorHitFilter: Type "..sTyp.." mismatch <"..tID.TYPE.."@"..sM..">", oFSen) end
+    return logError("setHitFilter: Type "..sTyp.." mismatch <"..tID.TYPE.."@"..sM..">", oFSen) end
   if(not tID[sO]) then tID[sO] = {} end
   if(sM:sub(1,2) == "Is" and sTyp == "number") then 
     tID[sO][((vV ~= 0) and 1 or 0)] = bS
@@ -182,9 +182,9 @@ local function convHitValue(oEnt, sM) local vV = oEnt[sM](oEnt)
   if(sM:sub(1,2) == "Is") then vV = gtBoolToNum[vV] end; return vV
 end
 
-local function makeFSensor(vEnt, vPos, vDir, nLen)
+local function newItem(vEnt, vPos, vDir, nLen)
   if(gnTFS >= varMaxTotal:GetInt()) then 
-    return logError("makeFSensor: Count reached ["..gnTFS.."]", nil) end
+    return logError("newItem: Count reached ["..gnTFS.."]", nil) end
   local oFSen = {Hit = {__top=0, __ID={}}}
   if(isEntity(vEnt)) then oFSen.Ent = vEnt -- Store attachment entity to manage local sampling
     oFSen.Hit.Ent = {SKIP={[vEnt]=true},ONLY={}} -- Store the base entity for ignore
@@ -207,11 +207,11 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
     endpos = Vector(), -- The end position of the trace
     filter = function(oEnt) local tHit, nS, vV = oFSen.Hit
       if(not isEntity(oEnt)) then return end
-      nS, vV = getFSensorHitStatus(tHit.Ent, oEnt)
+      nS, vV = getHitStatus(tHit.Ent, oEnt)
       if(nS > 1) then return vV end -- Entity found/skipped
       local nTop = tHit.__top; if(nTop > 0) then
         for ID = 1, nTop do local sFoo = tHit[ID].CALL
-          nS, vV = getFSensorHitStatus(tHit[ID], convHitValue(oEnt, sFoo))
+          nS, vV = getHitStatus(tHit[ID], convHitValue(oEnt, sFoo))
           if(nS > 1) then return vV end -- Option skipped/selected
         end -- All options are checked then trace hit notmally
       end; return true -- Finally we register the trace hit enabled
@@ -237,47 +237,47 @@ end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor(vector vP, vector vD, number nL)
-  return makeFSensor(this, vP, vD, nL)
+  return newItem(this, vP, vD, nL)
 end
 
 __e2setcost(20)
 e2function fsensor newFSensor(vector vP, vector vD, number nL)
-  return makeFSensor(nil, vP, vD, nL)
+  return newItem(nil, vP, vD, nL)
 end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor(vector vP, vector vD)
-  return makeFSensor(this, vP, vD, 0)
+  return newItem(this, vP, vD, 0)
 end
 
 __e2setcost(20)
 e2function fsensor newFSensor(vector vP, vector vD)
-  return makeFSensor(nil, vP, vD, 0)
+  return newItem(nil, vP, vD, 0)
 end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor(vector vP)
-  return makeFSensor(this, vP, {0,0,0}, 0)
+  return newItem(this, vP, {0,0,0}, 0)
 end
 
 __e2setcost(20)
 e2function fsensor newFSensor(vector vP)
-  return makeFSensor(nil, vP, {0,0,0}, 0)
+  return newItem(nil, vP, {0,0,0}, 0)
 end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor()
-  return makeFSensor(this, {0,0,0}, {0,0,0}, 0)
+  return newItem(this, {0,0,0}, {0,0,0}, 0)
 end
 
 __e2setcost(20)
 e2function fsensor newFSensor()
-  return makeFSensor(nil, {0,0,0}, {0,0,0}, 0)
+  return newItem(nil, {0,0,0}, {0,0,0}, 0)
 end
 
 __e2setcost(20)
 e2function fsensor fsensor:copyFSensor()
-  return makeFSensor(this.Ent, this.Pos, this.Dir, this.Len)
+  return newItem(this.Ent, this.Pos, this.Dir, this.Len)
 end
 
 --[[ **************************** ENTITY **************************** ]]
@@ -314,51 +314,51 @@ end
 
 __e2setcost(3)
 e2function fsensor fsensor:remHit(string sM)
-  return remFSensorHitFilter(this, sM)
+  return remHitFilter(this, sM)
 end
 
 --[[ **************************** NUMBER **************************** ]]
 
 __e2setcost(3)
 e2function fsensor fsensor:addHitSkip(string sM, number vN)
-  return setFSensorHitFilter(this, self, sM, "SKIP", vN, true)
+  return setHitFilter(this, self, sM, "SKIP", vN, true)
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remHitSkip(string sM, number vN)
-  return setFSensorHitFilter(this, self, sM, "SKIP", vN, nil)
+  return setHitFilter(this, self, sM, "SKIP", vN, nil)
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:addHitOnly(string sM, number vN)
-  return setFSensorHitFilter(this, self, sM, "ONLY", vN, true)
+  return setHitFilter(this, self, sM, "ONLY", vN, true)
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remHitOnly(string sM, number vN)
-  return setFSensorHitFilter(this, self, sM, "ONLY", vN, nil)
+  return setHitFilter(this, self, sM, "ONLY", vN, nil)
 end
 
 --[[ **************************** STRING **************************** ]]
 
 __e2setcost(3)
 e2function fsensor fsensor:addHitSkip(string sM, string vS)
-  return setFSensorHitFilter(this, self, sM, "SKIP", vS, true)
+  return setHitFilter(this, self, sM, "SKIP", vS, true)
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remHitSkip(string sM, string vS)
-  return setFSensorHitFilter(this, self, sM, "SKIP", vS, nil)
+  return setHitFilter(this, self, sM, "SKIP", vS, nil)
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:addHitOnly(string sM, string vS)
-  return setFSensorHitFilter(this, self, sM, "ONLY", vS, true)
+  return setHitFilter(this, self, sM, "ONLY", vS, true)
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remHitOnly(string sM, string vS)
-  return setFSensorHitFilter(this, self, sM, "ONLY", vS, nil)
+  return setHitFilter(this, self, sM, "ONLY", vS, nil)
 end
 
 -------------------------------------------------------------------------------
@@ -397,32 +397,32 @@ end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginLocal()
-  return convFSensorOrgEnt(this, "WorldToLocal", nil)
+  return convOrgEnt(this, "WorldToLocal", nil)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginWorld()
-  return convFSensorOrgEnt(this, "LocalToWorld", nil)
+  return convOrgEnt(this, "LocalToWorld", nil)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginLocal(entity vE)
-  return convFSensorOrgEnt(this, "WorldToLocal", vE)
+  return convOrgEnt(this, "WorldToLocal", vE)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginWorld(entity vE)
-  return convFSensorOrgEnt(this, "LocalToWorld", vE)
+  return convOrgEnt(this, "LocalToWorld", vE)
 end
 
 __e2setcost(7)
 e2function vector fsensor:getOriginLocal(vector vP, angle vA)
-  return convFSensorOrgUCS(this, "WorldToLocal", vP, vA)
+  return convOrgUCS(this, "WorldToLocal", vP, vA)
 end
 
 __e2setcost(7)
 e2function vector fsensor:getOriginWorld(vector vP, angle vA)
-  return convFSensorOrgUCS(this, "LocalToWorld", vP, vA)
+  return convOrgUCS(this, "LocalToWorld", vP, vA)
 end
 
 __e2setcost(3)
@@ -440,32 +440,32 @@ end
 
 __e2setcost(3)
 e2function vector fsensor:getDirectionLocal()
-  return convFSensorDirLocal(this, nil, nil)
+  return convDirLocal(this, nil, nil)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getDirectionWorld()
-  return convFSensorDirWorld(this, nil, nil)
+  return convDirWorld(this, nil, nil)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getDirectionLocal(entity vE)
-  return convFSensorDirLocal(this, vE, nil)
+  return convDirLocal(this, vE, nil)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getDirectionWorld(entity vE)
-  return convFSensorDirWorld(this, vE, nil)
+  return convDirWorld(this, vE, nil)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getDirectionLocal(angle vA)
-  return convFSensorDirLocal(this, nil, vA)
+  return convDirLocal(this, nil, vA)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getDirectionWorld(angle vA)
-  return convFSensorDirWorld(this, nil, vA)
+  return convDirWorld(this, nil, vA)
 end
 
 __e2setcost(3)
