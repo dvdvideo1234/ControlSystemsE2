@@ -221,8 +221,8 @@ local function newItem(vEnt, vPos, vDir, nLen)
       if(not isEntity(oEnt)) then return end
       nS, vV = getHitStatus(tHit.Ent, oEnt)
       if(nS > 1) then return vV end -- Entity found/skipped
-      local nTop = tHit.__top; if(nTop > 0) then
-        for ID = 1, nTop do local sFoo = tHit[ID].CALL
+      local nT = tHit.__top; if(nT > 0) then
+        for ID = 1, nT do local sFoo = tHit[ID].CALL
           nS, vV = getHitStatus(tHit[ID], convHitValue(oEnt, sFoo))
           if(nS > 1) then return vV end -- Option skipped/selected
         end -- All options are checked then trace hit notmally
