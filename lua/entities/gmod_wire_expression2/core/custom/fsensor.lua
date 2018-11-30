@@ -23,13 +23,17 @@ local gtSet = {
   VAR = "wire_expression2_",
   ID  = {__top = 0, __all = 0}, -- TOP > ID of the last taken. ALL > Total objects
   ZER = {
+    S = "",            -- Empty string to use instead of creating one everywhere
     A = Angle (0,0,0), -- Dummy zero angle for transformations
     V = Vector(0,0,0)  -- Dummy zero vector for transformations
   },
   MXL = 50000, -- The tracer maximum length just about one cube map
   CBN = {[true]=1,[false]=0}, -- This is used to convert between GLua boolean and wire boolean
-  ECH = {["#empty"]=true,[gsStrEmpty]=true} -- Variable being set to empty string
-}; gtSet.VAR = gtSet.VAR..gtSet.TYP[1]
+  ECH = {["#empty"]=true} -- Variable being set to empty string
+}
+-- Pre-processing
+gtSet.VAR = gtSet.VAR..gtSet.TYP[1]
+gtSet.ECH[gtSet.ZER.S] = true
 
 -- Register the type up here before the extension registration so that the fsensor still works
 registerType(gtSet.TYP[1], gtSet.TYP[2], nil,
@@ -48,11 +52,10 @@ registerType(gtSet.TYP[1], gtSet.TYP[2], nil,
 
 E2Lib.RegisterExtension(gtSet.TYP[1], true, "Lets E2 chips trace ray attachments and check for hits.")
 
-local gsStrEmpty = "" -- Empty string to use instead of creating one everywhere
 local gtMethList  = {} -- Placeholder for blacklist and convar prefix
 local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
-local varMethSkip = CreateConVar(gtSet.VAR.."_skip", gsStrEmpty, gnServContr, "E2 FSensor entity method black list")
-local varMethOnly = CreateConVar(gtSet.VAR.."_only", gsStrEmpty, gnServContr, "E2 FSensor entity method white list")
+local varMethSkip = CreateConVar(gtSet.VAR.."_skip", gtSet.ZER.S, gnServContr, "E2 FSensor entity method black list")
+local varMethOnly = CreateConVar(gtSet.VAR.."_only", gtSet.ZER.S, gnServContr, "E2 FSensor entity method white list")
 local varMaxTotal = CreateConVar(gtSet.VAR.."_max" , 30, gnServContr, "E2 FSensor maximum count")
 local gsVNS, gsVNO = varMethSkip:GetName(), varMethOnly:GetName()
 
@@ -87,12 +90,12 @@ end
 
 cvars.RemoveChangeCallback(gsVNS, gsVNS.."_call")
 cvars.AddChangeCallback(gsVNS, function(sVar, vOld, vNew)
-  gtMethList.SKIP = convArrayKeys(("/"):Explode(tostring(vNew or gsStrEmpty)))
+  gtMethList.SKIP = convArrayKeys(("/"):Explode(tostring(vNew or gtSet.ZER.S)))
 end, gsVNS.."_call")
 
 cvars.RemoveChangeCallback(gsVNO, gsVNO.."_call")
 cvars.AddChangeCallback(gsVNO, function(sVar, vOld, vNew)
-  gtMethList.ONLY = convArrayKeys(("/"):Explode(tostring(vNew or gsStrEmpty)))
+  gtMethList.ONLY = convArrayKeys(("/"):Explode(tostring(vNew or gtSet.ZER.S)))
 end, gsVNO.."_call")
 
 local function convDirLocal(oFSen, vE, vA)
@@ -151,7 +154,7 @@ end
 
 local function newHitFilter(oFSen, oChip, sM)
   if(not oFSen) then return 0 end -- Check for available method
-  if(sM:sub(1,3) ~= "Get" and sM:sub(1,2) ~= "Is" and sM ~= gsStrEmpty) then
+  if(sM:sub(1,3) ~= "Get" and sM:sub(1,2) ~= "Is" and sM ~= gtSet.ZER.S) then
     return logError("Method <"..sM.."> disabled", 0) end
   local tO = gtMethList.ONLY; if(tO and isHere(next(tO)) and not tO[sM]) then
     return logError("Method <"..sM.."> use only", 0) end
@@ -646,9 +649,9 @@ end
 
 __e2setcost(8)
 e2function string fsensor:getHitTexture()
-  if(not this) then return gsStrEmpty end
+  if(not this) then return gtSet.ZER.S end
   local trV = this.TrO.HitTexture
-  return tostring(trV or gsStrEmpty)
+  return tostring(trV or gtSet.ZER.S)
 end
 
 __e2setcost(8)
@@ -667,9 +670,9 @@ end
 
 __e2setcost(3)
 e2function string fsensor:getSurfacePropsName()
-  if(not this) then return gsStrEmpty end
+  if(not this) then return gtSet.ZER.S end
   local trV = this.TrO.SurfaceProps
-  return (trV and utilGetSurfacePropName(trV) or gsStrEmpty)
+  return (trV and utilGetSurfacePropName(trV) or gtSet.ZER.S)
 end
 
 __e2setcost(3)
