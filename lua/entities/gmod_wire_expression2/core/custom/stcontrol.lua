@@ -9,7 +9,7 @@ local bitBor = bit.bor
 local mathAbs = math.abs
 local mathModf = math.modf
 local tableConcat = table.concat
-local getTime = CurTime -- Using this as time benchmarking for high precision
+local getTime = CurTime -- Using this as time benchmarking supporting game pause
 local outError = error -- The function which generates error and prints it out
 local outPrint = print -- The function that outputs a string into the console
 
@@ -50,7 +50,7 @@ local function logError(sM, ...)
 end
 
 local function logStatus(sM, ...)
-  outPrint(tostring(sM)); return ...
+  outPrint("E2:stcontrol:"..tostring(sM)); return ...
 end
 
 local function setGains(oStCon, vP, vI, vD, bZ)
@@ -779,8 +779,7 @@ __e2setcost(20)
 e2function stcontrol stcontrol:setState(number nR, number nY)
   if(not this) then return nil end
   if(this.mbOn) then
-    if(this.mbMan) then
-      this.mvCon = (this.mvMan + this.mBias); return this end
+    if(this.mbMan) then this.mvCon = (this.mvMan + this.mBias); return this end
     this.mTimO = this.mTimN; this.mTimN = getTime()
     this.mErrO = this.mErrN; this.mErrN = (this.mbInv and (nY-nR) or (nR-nY))
     local timDt = (this.mnTo and this.mnTo or (this.mTimN - this.mTimO))
