@@ -169,7 +169,7 @@ e2function number allStControl()
 end
 
 __e2setcost(15)
-e2function number stcontrol:remove()
+e2function number stcontrol:remSelf()
   if(not this) then return 0 end
   local nTop, nAll = gtStoreID.__top, gtStoreID.__all
   if(this.ID == nTop) then nTop = (nTop - 1)
@@ -179,7 +179,7 @@ e2function number stcontrol:remove()
 end
 
 __e2setcost(20)
-e2function stcontrol stcontrol:copy()
+e2function stcontrol stcontrol:getCopy()
   return newItem(this.mnTo)
 end
 
