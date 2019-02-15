@@ -70,6 +70,26 @@ local function setGains(oStCon, vP, vI, vD, bZ)
   oStCon.mType[2] = sT; collectgarbage(); return oStCon
 end
 
+local function tuneZieglerNichols(oStCon, uK, uT, sM)
+  if(not oStCon) then return logError("Object missing", nil) end
+  local sM, sT = tostring(sM or ""), oStCon.mType[2]
+  local uK, uT = (tonumber(uK) or 0), (tonumber(uT) or 0)
+  if(uK <= 0 or uT <= 0) then return oStCon end
+  if(sT == "P") then return setPower(oStCon, (0.5*uK), 0, 0, true)
+  elseif(sT == "PI") then return setPower(oStCon, (0.45*uK), (1.2/uT), 0, true)
+  elseif(sT == "PD") then return setPower(oStCon, (0.80*uK), 0, (uT/8), true)
+  elseif(sT == "PID") then
+    if(sM == "int") then return setPower(oStCon, (7*uK)/10, 5/(2*uT), (3*uT)/20)
+    elseif(sM == "sov") then return setPower(oStCon, (uK/3), (2/uT), (uT/3))
+    elseif(sM == "nov") then return setPower(oStCon, (uK/5), (2/uT), (uT/3))
+    end; return setPower(oStCon, 0.60 * uK, 2.0 / uT, uT / 8.0)
+  end; return oStCon
+end
+
+local function tuneAstromHagglund()
+  -- TODO
+end
+
 local function getCode(nN)
   local nW, nF = mathModf(nN, 1)
   if(nN == 1) then return gtMissName[3] end -- [Natural conventional][y=k*x]
@@ -800,6 +820,16 @@ e2function stcontrol stcontrol:setState(number nR, number nY)
     this.mvCon = (this.mvCon + this.mBias) -- Apply the saturated signal bias
     this.mTimB = (getTime() - this.mTimN) -- Benchmark the process
   else return resState(this) end; return this
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneZN(number uK, number, uT)
+  return tuneZieglerNichols(this, uK, uT)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneZN(number uK, number, uT, string sM)
+  return tuneZieglerNichols(this, uK, uT, sM)
 end
 
 __e2setcost(15)
