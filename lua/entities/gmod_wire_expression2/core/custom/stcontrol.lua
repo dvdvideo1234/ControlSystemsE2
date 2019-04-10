@@ -41,8 +41,8 @@ local varMaxTotal = CreateConVar(gsVarPrefx.."_max" , 20, gnServContr, "E2 StCon
 local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
 local function getValue(kV,eV,pV) return (kV*getSign(eV)*mathAbs(eV)^pV) end
 
-local function remValue(tSrc, aKey)
-  tSrc[aKey] = nil; collectgarbage();
+local function remValue(tSrc, aKey, bCall)
+  tSrc[aKey] = nil; if(bCall) then collectgarbage() end
 end
 
 local function logError(sM, ...)
@@ -68,26 +68,6 @@ local function setGains(oStCon, vP, vI, vD, bZ)
     if(oStCon["mk"..val] > 0) then sT = sT..val end end
   if(sT:len() == 0) then sT = gtMissName[2]:rep(3) end -- Check for invalid control
   oStCon.mType[2] = sT; collectgarbage(); return oStCon
-end
-
-local function tuneZieglerNichols(oStCon, uK, uT, sM)
-  if(not oStCon) then return logError("Object missing", nil) end
-  local sM, sT = tostring(sM or ""), oStCon.mType[2]
-  local uK, uT = (tonumber(uK) or 0), (tonumber(uT) or 0)
-  if(uK <= 0 or uT <= 0) then return oStCon end
-  if(sT == "P") then return setPower(oStCon, (0.5*uK), 0, 0, true)
-  elseif(sT == "PI") then return setPower(oStCon, (0.45*uK), (1.2/uT), 0, true)
-  elseif(sT == "PD") then return setPower(oStCon, (0.80*uK), 0, (uT/8), true)
-  elseif(sT == "PID") then
-    if(sM == "int") then return setPower(oStCon, (7*uK)/10, 5/(2*uT), (3*uT)/20)
-    elseif(sM == "sov") then return setPower(oStCon, (uK/3), (2/uT), (uT/3))
-    elseif(sM == "nov") then return setPower(oStCon, (uK/5), (2/uT), (uT/3))
-    end; return setPower(oStCon, 0.60 * uK, 2.0 / uT, uT / 8.0)
-  end; return oStCon
-end
-
-local function tuneAstromHagglund()
-  -- TODO
 end
 
 local function getCode(nN)
@@ -153,6 +133,28 @@ local function newItem(nTo)
   collectgarbage(); return oStCon
 end
 
+local function tuneZieglerNichols(oStCon, uK, uT, sM)
+  if(not oStCon) then return logError("Object missing", nil) end
+  local sM, sT = tostring(sM or ""), oStCon.mType[2]
+  local uK, uT = (tonumber(uK) or 0), (tonumber(uT) or 0)
+  if(uK <= 0 or uT <= 0) then return oStCon end
+  if(sT == "P") then return setGains(oStCon, (0.5*uK), 0, 0, true)
+  elseif(sT == "PI") then return setGains(oStCon, (0.45*uK), (1.2/uT), 0, true)
+  elseif(sT == "PD") then return setGains(oStCon, (0.80*uK), 0, (uT/8), true)
+  elseif(sT == "PID") then
+    if    (sM == "classic") then return setGains(oStCon, 0.60 * uK, 2.0 / uT, uT / 8.0)
+    elseif(sM == "pessen" ) then return setGains(oStCon, (7*uK)/10, 5/(2*uT), (3*uT)/20)
+    elseif(sM == "sovershoot") then return setGains(oStCon, (uK/3), (2/uT), (uT/3))
+    elseif(sM == "novershoot") then return setGains(oStCon, (uK/5), (2/uT), (uT/3))
+    else return logError("PID tuning method unsuppoerted <"..sM..">", oStCon) end
+  else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+end
+
+local function tuneAstromHagglund()
+  -- TODO
+end
+
+
 --[[ **************************** CONTROLLER **************************** ]]
 
 registerOperator("ass", "xsc", "xsc", function(self, args)
@@ -194,7 +196,7 @@ e2function number stcontrol:remSelf()
   local nTop, nAll = gtStoreID.__top, gtStoreID.__all
   if(this.ID == nTop) then nTop = (nTop - 1)
     while(not gtStoreID[nTop]) do nTop = (nTop - 1) end end
-  nAll = (nAll - 1); remValue(gtStoreID, this.ID)
+  nAll = (nAll - 1); remValue(gtStoreID, this.ID, true)
   gtStoreID.__top, gtStoreID.__all = nTop, nAll; return 1
 end
 
@@ -356,7 +358,7 @@ e2function array stcontrol:getGainID()
 end
 
 __e2setcost(3)
-e2function vector stcontrol:getGainID()
+e2function vector2 stcontrol:getGainID()
   if(not this) then return {0,0} end
   return {this.mkI, this.mkD}
 end
@@ -432,19 +434,19 @@ end
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindup()
   if(not this) then return nil end
-  remValue(this, "mSatD"); remValue(this, "mSatU"); return this
+  remValue(this, "mSatD"); remValue(this, "mSatU", true); return this
 end
 
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindupD()
   if(not this) then return nil end
-  remValue(this, "mSatD"); return this
+  remValue(this, "mSatD", true); return this
 end
 
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindupU()
   if(not this) then return nil end
-  remValue(this, "mSatU"); return this
+  remValue(this, "mSatU", true); return this
 end
 
 __e2setcost(3)
@@ -665,7 +667,7 @@ end
 __e2setcost(3)
 e2function stcontrol stcontrol:remTimeSample()
   if(not this) then return 0 end
-  remValue(this, "mnTo"); return this
+  remValue(this, "mnTo", true); return this
 end
 
 __e2setcost(3)
