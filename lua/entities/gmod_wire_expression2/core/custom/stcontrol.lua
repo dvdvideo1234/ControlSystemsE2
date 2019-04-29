@@ -9,7 +9,7 @@ local bitBor = bit.bor
 local mathAbs = math.abs
 local mathModf = math.modf
 local tableConcat = table.concat
-local getTime = CurTime -- Using this as time benchmarking for high precision
+local getTime = CurTime -- Using this as time benchmarking supporting game pause
 local outError = error -- The function which generates error and prints it out
 local outPrint = print -- The function that outputs a string into the console
 
@@ -41,8 +41,8 @@ local varMaxTotal = CreateConVar(gsVarPrefx.."_max" , 20, gnServContr, "E2 StCon
 local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
 local function getValue(kV,eV,pV) return (kV*getSign(eV)*mathAbs(eV)^pV) end
 
-local function remValue(tSrc, aKey)
-  tSrc[aKey] = nil; collectgarbage();
+local function remValue(tSrc, aKey, bCall)
+  tSrc[aKey] = nil; if(bCall) then collectgarbage() end
 end
 
 local function logError(sM, ...)
@@ -50,7 +50,7 @@ local function logError(sM, ...)
 end
 
 local function logStatus(sM, ...)
-  outPrint(tostring(sM)); return ...
+  outPrint("E2:stcontrol:"..tostring(sM)); return ...
 end
 
 local function setGains(oStCon, vP, vI, vD, bZ)
@@ -133,6 +133,28 @@ local function newItem(nTo)
   collectgarbage(); return oStCon
 end
 
+local function tuneZieglerNichols(oStCon, uK, uT, sM)
+  if(not oStCon) then return logError("Object missing", nil) end
+  local sM, sT = tostring(sM or ""), oStCon.mType[2]
+  local uK, uT = (tonumber(uK) or 0), (tonumber(uT) or 0)
+  if(uK <= 0 or uT <= 0) then return oStCon end
+  if(sT == "P") then return setGains(oStCon, (0.5*uK), 0, 0, true)
+  elseif(sT == "PI") then return setGains(oStCon, (0.45*uK), (1.2/uT), 0, true)
+  elseif(sT == "PD") then return setGains(oStCon, (0.80*uK), 0, (uT/8), true)
+  elseif(sT == "PID") then
+    if    (sM == "classic") then return setGains(oStCon, 0.60 * uK, 2.0 / uT, uT / 8.0)
+    elseif(sM == "pessen" ) then return setGains(oStCon, (7*uK)/10, 5/(2*uT), (3*uT)/20)
+    elseif(sM == "sovershoot") then return setGains(oStCon, (uK/3), (2/uT), (uT/3))
+    elseif(sM == "novershoot") then return setGains(oStCon, (uK/5), (2/uT), (uT/3))
+    else return logError("PID tuning method unsuppoerted <"..sM..">", oStCon) end
+  else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+end
+
+local function tuneAstromHagglund()
+  -- TODO
+end
+
+
 --[[ **************************** CONTROLLER **************************** ]]
 
 registerOperator("ass", "xsc", "xsc", function(self, args)
@@ -169,17 +191,17 @@ e2function number allStControl()
 end
 
 __e2setcost(15)
-e2function number stcontrol:remove()
+e2function number stcontrol:remSelf()
   if(not this) then return 0 end
   local nTop, nAll = gtStoreID.__top, gtStoreID.__all
   if(this.ID == nTop) then nTop = (nTop - 1)
     while(not gtStoreID[nTop]) do nTop = (nTop - 1) end end
-  nAll = (nAll - 1); remValue(gtStoreID, this.ID)
+  nAll = (nAll - 1); remValue(gtStoreID, this.ID, true)
   gtStoreID.__top, gtStoreID.__all = nTop, nAll; return 1
 end
 
 __e2setcost(20)
-e2function stcontrol stcontrol:copy()
+e2function stcontrol stcontrol:getCopy()
   return newItem(this.mnTo)
 end
 
@@ -336,7 +358,7 @@ e2function array stcontrol:getGainID()
 end
 
 __e2setcost(3)
-e2function vector stcontrol:getGainID()
+e2function vector2 stcontrol:getGainID()
   if(not this) then return {0,0} end
   return {this.mkI, this.mkD}
 end
@@ -412,19 +434,19 @@ end
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindup()
   if(not this) then return nil end
-  remValue(this, "mSatD"); remValue(this, "mSatU"); return this
+  remValue(this, "mSatD"); remValue(this, "mSatU", true); return this
 end
 
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindupD()
   if(not this) then return nil end
-  remValue(this, "mSatD"); return this
+  remValue(this, "mSatD", true); return this
 end
 
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindupU()
   if(not this) then return nil end
-  remValue(this, "mSatU"); return this
+  remValue(this, "mSatU", true); return this
 end
 
 __e2setcost(3)
@@ -645,7 +667,7 @@ end
 __e2setcost(3)
 e2function stcontrol stcontrol:remTimeSample()
   if(not this) then return 0 end
-  remValue(this, "mnTo"); return this
+  remValue(this, "mnTo", true); return this
 end
 
 __e2setcost(3)
@@ -779,8 +801,7 @@ __e2setcost(20)
 e2function stcontrol stcontrol:setState(number nR, number nY)
   if(not this) then return nil end
   if(this.mbOn) then
-    if(this.mbMan) then
-      this.mvCon = (this.mvMan + this.mBias); return this end
+    if(this.mbMan) then this.mvCon = (this.mvMan + this.mBias); return this end
     this.mTimO = this.mTimN; this.mTimN = getTime()
     this.mErrO = this.mErrN; this.mErrN = (this.mbInv and (nY-nR) or (nR-nY))
     local timDt = (this.mnTo and this.mnTo or (this.mTimN - this.mTimO))
@@ -801,6 +822,16 @@ e2function stcontrol stcontrol:setState(number nR, number nY)
     this.mvCon = (this.mvCon + this.mBias) -- Apply the saturated signal bias
     this.mTimB = (getTime() - this.mTimN) -- Benchmark the process
   else return resState(this) end; return this
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneZN(number uK, number, uT)
+  return tuneZieglerNichols(this, uK, uT)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneZN(number uK, number, uT, string sM)
+  return tuneZieglerNichols(this, uK, uT, sM)
 end
 
 __e2setcost(15)

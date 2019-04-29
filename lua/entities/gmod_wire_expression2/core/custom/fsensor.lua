@@ -291,7 +291,7 @@ e2function number allFSensor()
 end
 
 __e2setcost(15)
-e2function number fsensor:remove()
+e2function number fsensor:remSelf()
   if(not this) then return 0 end
   local nTop, nAll = gtStoreID.__top, gtStoreID.__all
   if(this.ID == nTop) then nTop = (nTop - 1)
@@ -302,7 +302,7 @@ end
 
 
 __e2setcost(20)
-e2function fsensor fsensor:copy()
+e2function fsensor fsensor:getCopy()
   return newItem(this.Ent, this.Pos, this.Dir, this.Len)
 end
 
