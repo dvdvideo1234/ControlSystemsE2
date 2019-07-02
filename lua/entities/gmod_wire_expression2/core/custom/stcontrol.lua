@@ -35,7 +35,7 @@ E2Lib.RegisterExtension("stcontrol", true, "Lets E2 chips have dedicated state c
 local gtComponent = {"P", "I", "D"} -- The names of each term. This is used for indexing and checking
 local gsFormatPID = "(%s%s%s)" -- The general type format for the control power setup
 local gtMissName  = {"Xx", "X", "Nr"} -- This is a placeholder for missing/default type
-local gtStoreST   = {} -- Store state controllers here linked to the entity of the E2
+local gtStoreOOP  = {} -- Store state controllers here linked to the entity of the E2
 local gsVarPrefx  = "wire_expression2_stcontrol" -- This is used for variable prefix
 local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
 local varMaxTotal = CreateConVar(gsVarPrefx.."_max" , 20, gnServContr, "E2 StControl maximum count")
@@ -56,14 +56,14 @@ local function logStatus(sM, ...)
 end
 
 local function getControllersTotal() local nAll = 0
-  for ent, con in pairs(gtStoreST) do nAll = nAll + #con end; return nAll
+  for ent, con in pairs(gtStoreOOP) do nAll = nAll + #con end; return nAll
 end
 
-local function remControllersEntity(oEnt)
-  if(not (oEnt and oEnt:IsValid())) then return end
-  local tCon = gtStoreST[oEnt]; if(not next(tCon)) then return end
+local function remControllersEntity(eChip)
+  if(not (eChip and eChip:IsValid())) then return end
+  local tCon = gtStoreOOP[eChip]; if(not next(tCon)) then return end
   local mCon = #tCon; for ID = 1, mCon do tableRemove(tCon) end
-  logStatus("Clear ["..tostring(mCon).."] items for "..tostring(oEnt))
+  logStatus("Clear ["..tostring(mCon).."] items for "..tostring(eChip))
 end
 
 local function setGains(oStCon, vP, vI, vD, bZ)
@@ -124,16 +124,16 @@ local function getType(oStCon)
   end; return tableConcat(oStCon.mType, "-")
 end
 
-local function newItem(oEnt, nTo)
-  if(not (oEnt and oEnt:IsValid())) then
+local function newItem(eChip, nTo)
+  if(not (eChip and eChip:IsValid())) then
     return logError("Entity invalid", nil) end
   local nTot, nMax = getControllersTotal(), varMaxTotal:GetInt()
-  if(nMax <= 0) then remControllersEntity(oEnt)
+  if(nMax <= 0) then remControllersEntity(eChip)
     return logError("Limit invalid ["..tostring(nMax).."]", nil) end  
-  if(nTot >= nMax) then remControllersEntity(oEnt)
+  if(nTot >= nMax) then remControllersEntity(eChip)
     return logError("Count reached ["..tostring(nMax).."]", nil) end
   local oStCon = {}; oStCon.mnTo = tonumber(nTo) -- Place to store the object
-  if(oStCon.mnTo and oStCon.mnTo <= 0) then remControllersEntity(oEnt)
+  if(oStCon.mnTo and oStCon.mnTo <= 0) then remControllersEntity(eChip)
     return logError("Delta mismatch ["..tostring(oStCon.mnTo).."]", nil) end
   local sT = gsFormatPID:format(gtMissName[3], gtMissName[3], gtMissName[3])
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
@@ -144,9 +144,9 @@ local function newItem(oEnt, nTo)
   oStCon.mkP, oStCon.mkI, oStCon.mkD = 0, 0, 0 -- P, I and D term gains
   oStCon.mpP, oStCon.mpI, oStCon.mpD = 1, 1, 1 -- Raise the error to power of that much
   oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn, oStCon.mbMan = false, false, false, false
-  oStCon.mvMan, oStCon.mEnt = 0, oEnt -- Configure manual mode and store indexing
-  local tCon = gtStoreST[oEnt]; if(not tCon) then gtStoreST[oEnt] = {}; tCon = gtStoreST[oEnt] end
-  oEnt:CallOnRemove("stcontrol_remove_ent", remControllersEntity)
+  oStCon.mvMan, oStCon.mID = 0, eChip -- Configure manual mode and store indexing
+  local tCon = gtStoreOOP[eChip]; if(not tCon) then gtStoreOOP[eChip] = {}; tCon = gtStoreOOP[eChip] end
+  eChip:CallOnRemove("stcontrol_remove_ent", remControllersEntity)
   tableInsert(tCon, oStCon); collectgarbage(); return oStCon
 end
 
@@ -210,9 +210,9 @@ end
 __e2setcost(15)
 e2function number stcontrol:remSelf()
   if(not this) then return 0 end
-  for ent, con in pairs(gtStoreST) do for ID = 1, #con do
-    if(con[ID] == this) then tableRemove(con, ID) end
-  end; end; return 1
+  local tCon = gtStoreOOP[this.mID]; if(not tCon) then return 0 end
+  for ID = 1, #tCon do if(tCon[ID] == this) then tableRemove(tCon, ID); break end
+  end; return 1
 end
 
 __e2setcost(20)
