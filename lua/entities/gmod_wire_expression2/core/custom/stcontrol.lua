@@ -9,6 +9,8 @@ local bitBor = bit.bor
 local mathAbs = math.abs
 local mathModf = math.modf
 local tableConcat = table.concat
+local tableInsert = table.insert
+local tableRemove = table.remove
 local getTime = CurTime -- Using this as time benchmarking supporting game pause
 local outError = error -- The function which generates error and prints it out
 local outPrint = print -- The function that outputs a string into the console
@@ -26,14 +28,14 @@ registerType("stcontrol", "xsc", nil,
   end
 )
 
---[[ ****************************************************************************** ]] 
+--[[ ****************************************************************************** ]]
 
 E2Lib.RegisterExtension("stcontrol", true, "Lets E2 chips have dedicated state control objects")
 
 local gtComponent = {"P", "I", "D"} -- The names of each term. This is used for indexing and checking
 local gsFormatPID = "(%s%s%s)" -- The general type format for the control power setup
 local gtMissName  = {"Xx", "X", "Nr"} -- This is a placeholder for missing/default type
-local gtStoreID   = {__top = 0, __all = 0} -- TOP > ID of the last taken. ALL > Total objects
+local gtStoreST   = {} -- Store state controllers here linked to the entity of the E2
 local gsVarPrefx  = "wire_expression2_stcontrol" -- This is used for variable prefix
 local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
 local varMaxTotal = CreateConVar(gsVarPrefx.."_max" , 20, gnServContr, "E2 StControl maximum count")
@@ -51,6 +53,17 @@ end
 
 local function logStatus(sM, ...)
   outPrint("E2:stcontrol:"..tostring(sM)); return ...
+end
+
+local function getControllersTotal() local nAll = 0
+  for ent, con in pairs(gtStoreST) do nAll = nAll + #con end; return nAll
+end
+
+local function remControllersEntity(oEnt)
+  if(not (oEnt and oEnt:IsValid())) then return end
+  local tCon = gtStoreST[oEnt]; if(not next(tCon)) then return end
+  local mCon = #tCon; for ID = 1, mCon do tableRemove(tCon) end
+  logStatus("Clear ["..tostring(mCon).."] items for "..tostring(oEnt))
 end
 
 local function setGains(oStCon, vP, vI, vD, bZ)
@@ -111,12 +124,16 @@ local function getType(oStCon)
   end; return tableConcat(oStCon.mType, "-")
 end
 
-local function newItem(nTo)
-  local nTop, nAll = gtStoreID.__top, gtStoreID.__all
-  if(nAll >= varMaxTotal:GetInt()) then 
-    return logError("Count reached ["..nAll.."]", nil) end
+local function newItem(oEnt, nTo)
+  if(not (oEnt and oEnt:IsValid())) then
+    return logError("Entity invalid", nil) end
+  local nTot, nMax = getControllersTotal(), varMaxTotal:GetInt()
+  if(nMax <= 0) then remControllersEntity(oEnt)
+    return logError("Limit invalid ["..tostring(nMax).."]", nil) end  
+  if(nTot >= nMax) then remControllersEntity(oEnt)
+    return logError("Count reached ["..tostring(nMax).."]", nil) end
   local oStCon = {}; oStCon.mnTo = tonumber(nTo) -- Place to store the object
-  if(oStCon.mnTo and oStCon.mnTo <= 0) then -- Fixed sampling time delta check
+  if(oStCon.mnTo and oStCon.mnTo <= 0) then remControllersEntity(oEnt)
     return logError("Delta mismatch ["..tostring(oStCon.mnTo).."]", nil) end
   local sT = gsFormatPID:format(gtMissName[3], gtMissName[3], gtMissName[3])
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
@@ -127,10 +144,10 @@ local function newItem(nTo)
   oStCon.mkP, oStCon.mkI, oStCon.mkD = 0, 0, 0 -- P, I and D term gains
   oStCon.mpP, oStCon.mpI, oStCon.mpD = 1, 1, 1 -- Raise the error to power of that much
   oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn, oStCon.mbMan = false, false, false, false
-  oStCon.mvMan = 0 -- Configure manual mode and store indexing
-  nTop = (nTop + 1); oStCon.ID = nTop; gtStoreID[nTop] = oStCon;
-  nAll = (nAll + 1); gtStoreID.__top, gtStoreID.__all = nTop, nAll
-  collectgarbage(); return oStCon
+  oStCon.mvMan, oStCon.mEnt = 0, oEnt -- Configure manual mode and store indexing
+  local tCon = gtStoreST[oEnt]; if(not tCon) then gtStoreST[oEnt] = {}; tCon = gtStoreST[oEnt] end
+  oEnt:CallOnRemove("stcontrol_remove_ent", remControllersEntity)
+  tableInsert(tCon, oStCon); collectgarbage(); return oStCon
 end
 
 local function tuneZieglerNichols(oStCon, uK, uT, sM)
@@ -172,12 +189,12 @@ end
 
 __e2setcost(20)
 e2function stcontrol newStControl()
-  return newItem()
+  return newItem(self.entity)
 end
 
 __e2setcost(20)
 e2function stcontrol newStControl(number nTo)
-  return newItem(nTo)
+  return newItem(self.entity, nTo)
 end
 
 __e2setcost(1)
@@ -187,22 +204,20 @@ end
 
 __e2setcost(1)
 e2function number allStControl()
-  return gtStoreID.__all
+  return getControllersTotal()
 end
 
 __e2setcost(15)
 e2function number stcontrol:remSelf()
   if(not this) then return 0 end
-  local nTop, nAll = gtStoreID.__top, gtStoreID.__all
-  if(this.ID == nTop) then nTop = (nTop - 1)
-    while(not gtStoreID[nTop]) do nTop = (nTop - 1) end end
-  nAll = (nAll - 1); remValue(gtStoreID, this.ID, true)
-  gtStoreID.__top, gtStoreID.__all = nTop, nAll; return 1
+  for ent, con in pairs(gtStoreST) do for ID = 1, #con do
+    if(con[ID] == this) then tableRemove(con, ID) end
+  end; end; return 1
 end
 
 __e2setcost(20)
 e2function stcontrol stcontrol:getCopy()
-  return newItem(this.mnTo)
+  return newItem(self, this.mnTo)
 end
 
 __e2setcost(7)
