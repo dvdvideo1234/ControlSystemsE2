@@ -204,7 +204,8 @@ local function newItem(eChip, vEnt, vPos, vDir, nLen)
     return logError("Limit invalid ["..tostring(nMax).."]", nil) end  
   if(nTot >= nMax) then remSensorEntity(eChip)
     return logError("Count reached ["..tostring(nMax).."]", nil) end   
-  local oFSen = {}; oFSen.mID, oFSen.mHit = eChip, {Size=0, ID={}};  
+  local oFSen, tSen = {}, gtStoreOOP[eChip]; oFSen.mID, oFSen.mHit = eChip, {Size=0, ID={}};
+  if(not tSen) then gtStoreOOP[eChip] = {}; tSen = gtStoreOOP[eChip] end  
   if(isEntity(vEnt)) then oFSen.Ent = vEnt -- Store attachment entity to manage local sampling
     oFSen.mHit.Ent = {SKIP={[vEnt]=true},ONLY={}} -- Store the base entity for ignore
   else oFSen.mHit.Ent, oFSen.Ent = {SKIP={},ONLY={}}, nil end -- Make sure the entity is cleared
@@ -228,15 +229,14 @@ local function newItem(eChip, vEnt, vPos, vDir, nLen)
       if(not isEntity(oEnt)) then return end
       nS, vV = getHitStatus(tHit.Ent, oEnt)
       if(nS > 1) then return vV end -- Entity found/skipped
-      local nT = tHit.Size; if(nT > 0) then
-        for ID = 1, nT do local sFoo = tHit[ID].CALL
-          nS, vV = getHitStatus(tHit[ID], convHitValue(oEnt, sFoo))
+      if(tHit.Size > 0) then
+        for IH = 1, tHit.Size do local sFoo = tHit[IH].CALL
+          nS, vV = getHitStatus(tHit[IH], convHitValue(oEnt, sFoo))
           if(nS > 1) then return vV end -- Option skipped/selected
         end -- All options are checked then trace hit notmally
       end; return true -- Finally we register the trace hit enabled
     end, ignoreworld = false, -- Should the trace ignore world or not
     collisiongroup = COLLISION_GROUP_NONE } -- Collision group control
-  local tSen = gtStoreOOP[eChip]; if(not tSen) then gtStoreOOP[eChip] = {}; tSen = gtStoreOOP[eChip] end
   eChip:CallOnRemove("fsensor_remove_ent", remSensorEntity)
   tableInsert(tSen, oFSen); collectgarbage(); return oFSen
 end
