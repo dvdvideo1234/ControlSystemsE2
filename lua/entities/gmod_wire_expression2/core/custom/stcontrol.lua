@@ -40,8 +40,21 @@ local gsVarPrefx  = "wire_expression2_stcontrol" -- This is used for variable pr
 local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
 local varMaxTotal = CreateConVar(gsVarPrefx.."_max" , 20, gnServContr, "E2 StControl maximum count")
 
-local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
-local function getValue(kV,eV,pV) return (kV*getSign(eV)*mathAbs(eV)^pV) end
+local function isEntity(vE)
+  return (vE and vE:IsValid())
+end
+
+local function isHere(vV)
+  return (vV ~= nil)
+end
+
+local function getSign(nV)
+  return ((nV > 0 and 1) or (nV < 0 and -1) or 0)
+end
+
+local function getValue(kV,eV,pV)
+  return (kV*getSign(eV)*mathAbs(eV)^pV)
+end
 
 local function remValue(tSrc, aKey, bCall)
   tSrc[aKey] = nil; if(bCall) then collectgarbage() end
@@ -60,7 +73,7 @@ local function getControllersTotal() local nAll = 0
 end
 
 local function remControllersEntity(eChip)
-  if(not (eChip and eChip:IsValid())) then return end
+  if(not isEntity(eChip)) then return end
   local tCon = gtStoreOOP[eChip]; if(not next(tCon)) then return end
   local mCon = #tCon; for ID = 1, mCon do tableRemove(tCon) end
   logStatus("Clear ["..tostring(mCon).."] items for "..tostring(eChip))
@@ -125,19 +138,20 @@ local function getType(oStCon)
 end
 
 local function newItem(eChip, nTo)
-  if(not (eChip and eChip:IsValid())) then
+  if(not isEntity(eChip)) then
     return logError("Entity invalid", nil) end
   local nTot, nMax = getControllersTotal(), varMaxTotal:GetInt()
   if(nMax <= 0) then remControllersEntity(eChip)
     return logError("Limit invalid ["..tostring(nMax).."]", nil) end  
   if(nTot >= nMax) then remControllersEntity(eChip)
     return logError("Count reached ["..tostring(nMax).."]", nil) end
-  local oStCon = {}; oStCon.mnTo = tonumber(nTo) -- Place to store the object
+  local oStCon, sM = {}, gtMissName[3]; oStCon.mnTo = tonumber(nTo) -- Place to store the object
   if(oStCon.mnTo and oStCon.mnTo <= 0) then remControllersEntity(eChip)
     return logError("Delta mismatch ["..tostring(oStCon.mnTo).."]", nil) end
-  local sT = gsFormatPID:format(gtMissName[3], gtMissName[3], gtMissName[3])
+  local sT, tCon = gsFormatPID:format(sM, sM, sM), gtStoreOOP[eChip]
+  if(not tCon) then gtStoreOOP[eChip] = {}; tCon = gtStoreOOP[eChip] end
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
-  oStCon.mErrO, oStCon.mErrN, oStCon.mType = 0, 0, {sT,gtMissName[2]:rep(3)} -- Error state values
+  oStCon.mErrO, oStCon.mErrN, oStCon.mType = 0, 0, {sT, gtMissName[2]:rep(3)} -- Error state values
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true -- Control value and integral enabled
   oStCon.mBias, oStCon.mSatD, oStCon.mSatU = 0, nil, nil -- Saturation limits and settings
   oStCon.mvP, oStCon.mvI, oStCon.mvD = 0, 0, 0 -- Term values
@@ -145,14 +159,13 @@ local function newItem(eChip, nTo)
   oStCon.mpP, oStCon.mpI, oStCon.mpD = 1, 1, 1 -- Raise the error to power of that much
   oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn, oStCon.mbMan = false, false, false, false
   oStCon.mvMan, oStCon.mID = 0, eChip -- Configure manual mode and store indexing
-  local tCon = gtStoreOOP[eChip]; if(not tCon) then gtStoreOOP[eChip] = {}; tCon = gtStoreOOP[eChip] end
   eChip:CallOnRemove("stcontrol_remove_ent", remControllersEntity)
   tableInsert(tCon, oStCon); collectgarbage(); return oStCon
 end
 
 local function tuneZieglerNichols(oStCon, uK, uT, sM)
   if(not oStCon) then return logError("Object missing", nil) end
-  local sM, sT = tostring(sM or ""), oStCon.mType[2]
+  local sM, sT = tostring(sM or "classic"), oStCon.mType[2]
   local uK, uT = (tonumber(uK) or 0), (tonumber(uT) or 0)
   if(uK <= 0 or uT <= 0) then return oStCon end
   if(sT == "P") then return setGains(oStCon, (0.5*uK), 0, 0, true)

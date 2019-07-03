@@ -353,6 +353,15 @@ end
 --[[ **************************** FILTER **************************** ]]
 
 __e2setcost(3)
+e2function fsensor fsensor:remHit()
+  if(not this) then return nil end
+  local tID = this.mHit.ID
+  for key, id in pairs(tID) do
+    remHitFilter(this, key)
+  end; return this
+end
+
+__e2setcost(3)
 e2function fsensor fsensor:remHit(string sM)
   return remHitFilter(this, sM)
 end
