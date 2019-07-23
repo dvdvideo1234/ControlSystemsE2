@@ -204,7 +204,7 @@ local function newItem(eChip, vEnt, vPos, vDir, nLen)
     return logError("Limit invalid ["..tostring(nMax).."]", nil) end
   if(nTot >= nMax) then remSensorEntity(eChip)
     return logError("Count reached ["..tostring(nMax).."]", nil) end
-  local oFSen, tSen = {}, gtStoreOOP[eChip]; oFSen.mID, oFSen.mHit = eChip, {Size=0, ID={}};
+  local oFSen, tSen = {}, gtStoreOOP[eChip]; oFSen.mSet, oFSen.mHit = eChip, {Size=0, ID={}};
   if(not tSen) then gtStoreOOP[eChip] = {}; tSen = gtStoreOOP[eChip] end
   if(isEntity(vEnt)) then oFSen.mEnt = vEnt -- Store attachment entity to manage local sampling
     oFSen.mHit.Ent = {SKIP={[vEnt]=true},ONLY={}} -- Store the base entity for ignore
@@ -309,7 +309,7 @@ end
 __e2setcost(15)
 e2function number fsensor:remSelf()
   if(not this) then return 0 end
-  local tSen = gtStoreOOP[this.mID]; if(not tSen) then return 0 end
+  local tSen = gtStoreOOP[this.mSet]; if(not tSen) then return 0 end
   for ID = 1, #tSen do if(tSen[ID] == this) then tableRemove(tSen, ID); break end
   end; return 1
 end

@@ -142,7 +142,7 @@ local function newItem(eChip, nTo)
     return logError("Entity invalid", nil) end
   local nTot, nMax = getControllersTotal(), varMaxTotal:GetInt()
   if(nMax <= 0) then remControllersEntity(eChip)
-    return logError("Limit invalid ["..tostring(nMax).."]", nil) end  
+    return logError("Limit invalid ["..tostring(nMax).."]", nil) end
   if(nTot >= nMax) then remControllersEntity(eChip)
     return logError("Count reached ["..tostring(nMax).."]", nil) end
   local oStCon, sM = {}, gtMissName[3]; oStCon.mnTo = tonumber(nTo) -- Place to store the object
@@ -158,7 +158,7 @@ local function newItem(eChip, nTo)
   oStCon.mkP, oStCon.mkI, oStCon.mkD = 0, 0, 0 -- P, I and D term gains
   oStCon.mpP, oStCon.mpI, oStCon.mpD = 1, 1, 1 -- Raise the error to power of that much
   oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn, oStCon.mbMan = false, false, false, false
-  oStCon.mvMan, oStCon.mID = 0, eChip -- Configure manual mode and store indexing
+  oStCon.mvMan, oStCon.mSet = 0, eChip -- Configure manual mode and store indexing
   eChip:CallOnRemove("stcontrol_remove_ent", remControllersEntity)
   tableInsert(tCon, oStCon); collectgarbage(); return oStCon
 end
@@ -223,7 +223,7 @@ end
 __e2setcost(15)
 e2function number stcontrol:remSelf()
   if(not this) then return 0 end
-  local tCon = gtStoreOOP[this.mID]; if(not tCon) then return 0 end
+  local tCon = gtStoreOOP[this.mSet]; if(not tCon) then return 0 end
   for ID = 1, #tCon do if(tCon[ID] == this) then tableRemove(tCon, ID); break end
   end; return 1
 end
