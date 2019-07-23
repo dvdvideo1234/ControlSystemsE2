@@ -96,7 +96,7 @@ end
 
 local function convDirLocal(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
-  local oD, oE = oFSen.mDir, (vE or oFSen.Ent)
+  local oD, oE = oFSen.mDir, (vE or oFSen.mEnt)
   if(not (isEntity(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
   local oV, oA = Vector(oD[1], oD[2], oD[3]), (vA and vA or oE:GetAngles())
   return {oV:Dot(oA:Forward()), -oV:Dot(oA:Right()), oV:Dot(oA:Up())}
@@ -104,7 +104,7 @@ end
 
 local function convDirWorld(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
-  local oD, oE = oFSen.mDir, (vE or oFSen.Ent)
+  local oD, oE = oFSen.mDir, (vE or oFSen.mEnt)
   if(not (isEntity(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
   local oV, oA = Vector(oD[1], oD[2], oD[3]), (vA and vA or oE:GetAngles())
   oV:Rotate(oA); return {oV[1], oV[2], oV[3]}
@@ -112,7 +112,7 @@ end
 
 local function convOrgEnt(oFSen, sF, vE)
   if(not oFSen) then return {0,0,0} end
-  local oO, oE = oFSen.mPos, (vE or oFSen.Ent)
+  local oO, oE = oFSen.mPos, (vE or oFSen.mEnt)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
   local oV = Vector(oO[1], oO[2], oO[3])
   oV:Set(oE[sF](oE, oV)); return {oV[1], oV[2], oV[3]}
@@ -120,7 +120,7 @@ end
 
 local function convOrgUCS(oFSen, sF, vP, vA)
   if(not oFSen) then return {0,0,0} end
-  local oO, oE = oFSen.mPos, (vE or oFSen.Ent)
+  local oO, oE = oFSen.mPos, (vE or oFSen.mEnt)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
   local oV, vN, aN = Vector(oO[1], oO[2], oO[3])
   if(sF == "LocalToWorld") then
@@ -173,14 +173,14 @@ end
 local function setHitFilter(oFSen, oChip, sM, sO, vV, bS)
   if(not oFSen) then return nil end
   local tHit, sTyp = oFSen.mHit, type(vV) -- Obtain hit filter location
-  local nID = tHit.ID[sM]; if(not isHere(nID)) then 
+  local nID = tHit.ID[sM]; if(not isHere(nID)) then
     nID = newHitFilter(oFSen, oChip, sM)
   end -- Obtain the current data index
   local tID = tHit[nID]; if(not tID.TYPE) then tID.TYPE = type(vV) end
   if(tID.TYPE ~= sTyp) then -- Check the current data type and prevent the user from messing up
     return logError("Type "..sTyp.." mismatch <"..tID.TYPE.."@"..sM..">", oFSen) end
   if(not tID[sO]) then tID[sO] = {} end
-  if(sM:sub(1,2) == "Is" and sTyp == "number") then 
+  if(sM:sub(1,2) == "Is" and sTyp == "number") then
     tID[sO][((vV ~= 0) and 1 or 0)] = bS
   else tID[sO][vV] = bS end; collectgarbage(); return oFSen
 end
@@ -201,14 +201,14 @@ local function newItem(eChip, vEnt, vPos, vDir, nLen)
     return logError("Entity invalid", nil) end
   local nTot, nMax = getSensorsTotal(), varMaxTotal:GetInt()
   if(nMax <= 0) then remSensorEntity(eChip)
-    return logError("Limit invalid ["..tostring(nMax).."]", nil) end  
+    return logError("Limit invalid ["..tostring(nMax).."]", nil) end
   if(nTot >= nMax) then remSensorEntity(eChip)
-    return logError("Count reached ["..tostring(nMax).."]", nil) end   
+    return logError("Count reached ["..tostring(nMax).."]", nil) end
   local oFSen, tSen = {}, gtStoreOOP[eChip]; oFSen.mID, oFSen.mHit = eChip, {Size=0, ID={}};
-  if(not tSen) then gtStoreOOP[eChip] = {}; tSen = gtStoreOOP[eChip] end  
-  if(isEntity(vEnt)) then oFSen.Ent = vEnt -- Store attachment entity to manage local sampling
+  if(not tSen) then gtStoreOOP[eChip] = {}; tSen = gtStoreOOP[eChip] end
+  if(isEntity(vEnt)) then oFSen.mEnt = vEnt -- Store attachment entity to manage local sampling
     oFSen.mHit.Ent = {SKIP={[vEnt]=true},ONLY={}} -- Store the base entity for ignore
-  else oFSen.mHit.Ent, oFSen.Ent = {SKIP={},ONLY={}}, nil end -- Make sure the entity is cleared
+  else oFSen.mHit.Ent, oFSen.mEnt = {SKIP={},ONLY={}}, nil end -- Make sure the entity is cleared
   oFSen.mLen = mathClamp(tonumber(nLen or 0),-gnMaxBeam,gnMaxBeam) -- How long the length is
   -- Local tracer position the trace starts from
   oFSen.mPos = Vector(vPos[1],vPos[2],vPos[3])
@@ -268,7 +268,7 @@ end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor(vector vP, vector vD)
-  return newItem(self.entity, self.entity, this, vP, vD, 0)
+  return newItem(self.entity, this, vP, vD, 0)
 end
 
 __e2setcost(20)
@@ -317,7 +317,7 @@ end
 
 __e2setcost(20)
 e2function fsensor fsensor:getCopy()
-  return newItem(self.entity, this.Ent, this.mPos, this.mDir, this.mLen)
+  return newItem(self.entity, this.mEnt, this.mPos, this.mDir, this.mLen)
 end
 
 --[[ **************************** ENTITY **************************** ]]
@@ -414,16 +414,16 @@ end
 
 __e2setcost(3)
 e2function entity fsensor:getAttachEntity()
-  if(not this) then return nil end; local vE = this.Ent
+  if(not this) then return nil end; local vE = this.mEnt
   if(not isEntity(vE)) then return nil end; return vE
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:setAttachEntity(entity eE)
-  if(not this) then return nil end; local vE = this.Ent
+  if(not this) then return nil end; local vE = this.mEnt
   if(not isEntity(eE)) then return this end
   if(isEntity(vE)) then remValue(this.HEnt.SKIP, vE, true) end
-  this.Ent = eE; this.HEnt.SKIP[eE] = true; return this
+  this.mEnt = eE; this.HEnt.SKIP[eE] = true; return this
 end
 
 __e2setcost(3)
@@ -565,7 +565,7 @@ end
 
 __e2setcost(12)
 e2function fsensor fsensor:smpLocal()
-  if(not this) then return nil end; local eE = this.Ent
+  if(not this) then return nil end; local eE = this.mEnt
   if(not isEntity(eE)) then return this end
   local eP, eA = eE:GetPos(), eE:GetAngles()
   local trS, trE = this.mTrI.start, this.mTrI.endpos
