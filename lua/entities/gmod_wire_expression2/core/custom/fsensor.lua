@@ -90,8 +90,8 @@ cvars.AddChangeCallback(gsVNO, function(sVar, vOld, vNew)
   gtMethList.ONLY = convArrayKeys(("/"):Explode(tostring(vNew or gsZeroStr)))
 end, gsVNO.."_call")
 
-local function getSensorsTotal() local nAll = 0
-  for ent, con in pairs(gtStoreOOP) do nAll = nAll + #con end; return nAll
+local function getSensorsCount() local mC = 0
+  for ent, con in pairs(gtStoreOOP) do mC = mC + #con end; return mC
 end
 
 local function convDirLocal(oFSen, vE, vA)
@@ -199,7 +199,7 @@ end
 local function newItem(eChip, vEnt, vPos, vDir, nLen)
   if(not isEntity(eChip)) then
     return logError("Entity invalid", nil) end
-  local nTot, nMax = getSensorsTotal(), varMaxTotal:GetInt()
+  local nTot, nMax = getSensorsCount(), varMaxTotal:GetInt()
   if(nMax <= 0) then remSensorEntity(eChip)
     return logError("Limit invalid ["..tostring(nMax).."]", nil) end
   if(nTot >= nMax) then remSensorEntity(eChip)
@@ -297,13 +297,13 @@ e2function fsensor newFSensor()
 end
 
 __e2setcost(1)
-e2function number maxFSensor()
+e2function number maxFSensors()
   return varMaxTotal:GetInt()
 end
 
 __e2setcost(1)
-e2function number allFSensor()
-  return getSensorsTotal()
+e2function number sumFSensors()
+  return getSensorsCount()
 end
 
 __e2setcost(15)

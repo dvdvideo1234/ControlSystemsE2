@@ -68,8 +68,8 @@ local function logStatus(sM, ...)
   outPrint("E2:stcontrol:"..tostring(sM)); return ...
 end
 
-local function getControllersTotal() local mT = 0
-  for ent, con in pairs(gtStoreOOP) do mT = mT + #con end; return mT
+local function getControllersCount() local mC = 0
+  for ent, con in pairs(gtStoreOOP) do mC = mC + #con end; return mC
 end
 
 local function remControllersEntity(eChip)
@@ -140,7 +140,7 @@ end
 local function newItem(eChip, nTo)
   if(not isEntity(eChip)) then
     return logError("Entity invalid", nil) end
-  local nTot, nMax = getControllersTotal(), varMaxTotal:GetInt()
+  local nTot, nMax = getControllersCount(), varMaxTotal:GetInt()
   if(nMax <= 0) then remControllersEntity(eChip)
     return logError("Limit invalid ["..tostring(nMax).."]", nil) end
   if(nTot >= nMax) then remControllersEntity(eChip)
@@ -260,13 +260,13 @@ e2function stcontrol newStControl(number nTo)
 end
 
 __e2setcost(1)
-e2function number maxStControl()
+e2function number maxStControls()
   return varMaxTotal:GetInt()
 end
 
 __e2setcost(1)
-e2function number allStControl()
-  return getControllersTotal()
+e2function number sumStControls()
+  return getControllersCount()
 end
 
 __e2setcost(15)
