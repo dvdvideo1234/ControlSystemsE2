@@ -68,8 +68,8 @@ local function logStatus(sM, ...)
   outPrint("E2:stcontrol:"..tostring(sM)); return ...
 end
 
-local function getControllersTotal() local nAll = 0
-  for ent, con in pairs(gtStoreOOP) do nAll = nAll + #con end; return nAll
+local function getControllersTotal() local mT = 0
+  for ent, con in pairs(gtStoreOOP) do mT = mT + #con end; return mT
 end
 
 local function remControllersEntity(eChip)
@@ -172,7 +172,7 @@ local function tuneZieglerNichols(oStCon, uK, uT, uL, sM, bM)
     elseif(sT == "PI") then return setGains(oStCon, (0.9*(uT/uL)), (0.3/uL), 0, true)
     elseif(sT == "PD") then return setGains(oStCon, (1.1*(uT/uL)), 0, (0.8/uL), true)
     elseif(sT == "PID") then return setGains(oStCon, (1.2*(uT/uL)), 1/(2*uL), 2/uL) end
-    else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+    else return logError("Type mismatch <"..sT..">", oStCon) end
   else if(uK <= 0 or uT <= 0) then return oStCon end
     if(sT == "P") then return setGains(oStCon, (0.5*uK), 0, 0, true)
     elseif(sT == "PI") then return setGains(oStCon, (0.45*uK), (1.2/uT), 0, true)
@@ -182,8 +182,8 @@ local function tuneZieglerNichols(oStCon, uK, uT, uL, sM, bM)
       elseif(sM == "pessen" ) then return setGains(oStCon, (7*uK)/10, 5/(2*uT), (3*uT)/20)
       elseif(sM == "sovers") then return setGains(oStCon, (uK/3), (2/uT), (uT/3))
       elseif(sM == "novers") then return setGains(oStCon, (uK/5), (2/uT), (uT/3))
-      else return logError("PID tuning method unsuppoerted <"..sM..">", oStCon) end
-    else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+      else return logError("Method mismatch <"..sM..">", oStCon) end
+    else return logError("Type mismatch <"..sT..">", oStCon) end
   end; return oStCon
 end
 
@@ -191,30 +191,42 @@ end
 local function tuneChoenCoon(oStCon, nK, nT, nL)
   if(not oStCon) then return logError("Object missing", nil) end
   if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
-  local sT = oStCon.mType[2]; if(sT ~= "PID") then
-    return logError("Controller not PID <"..sT..">", oStCon) end
-  local kP = (1/nK)*(nT/nL)*((16*nT+30)/(12*nT))
-  local kI = (nL*(32+6*(nL/nT)))/(13+3*(nL/nT))
-  local kD = 4*(nL/(11+2*(nL/nT)))
-  return setGains(oStCon, kP, kI, kD)
+  local sT, mA, mT = oStCon.mType[2], (nK*nL/nT), (nL/(nL+nT))
+  if(sT == "P") then
+    local kP = (1/mA)*(1+(0.35*mT)/(1-mT))
+    return setGains(oStCon, kP, 0, 0, true)
+  elseif(sT == "PI") then
+    local kP = (0.9/mA)*(1+(0.92*mT)/(1-mT))
+    local kI = 1/((3.3-3*mT)/(1+1.2*mT)*nL)
+    return setGains(oStCon, kP, kI, 0, true)
+  elseif(sT == "PD") then
+    local kP = (1.24/mA)*(1+(0.13*mT)/(1-mT))
+    local kD = ((0.27-0.36*mT)/(1-0.87*mT)*nL)
+    return setGains(oStCon, kP, 0, kD, true)
+  elseif(sT == "PID") then
+    local kP = (1.35/mA)*(1+(0.18*mT)/(1-mT))
+    local kI = 1/((2.5-2*mT)/(1-0.39*mT)*nL)
+    local kD = ((0.37-0.37*mT)/(1-0.87*mT)*nL)
+    return setGains(oStCon, kP, kI, kD) end
+  else return logError("Type mismatch <"..sT..">", oStCon) end
 end
 
 local function tuneHronesReswick(oStCon, nK, nT, nL, bM)
   if(not oStCon) then return logError("Object missing", nil) end
   if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
-  local nA = (nK * nL / nT)
+  local mA = (nK * nL / nT)
   if(bM) then -- Overshoot 20%
-    if(sT == "P") then return setGains(oStCon, 0.7/nA, 0, 0, true)
-    elseif(sT == "PI") then return setGains(oStCon, (0.6/nA), 1/nT, 0, true)
-    elseif(sT == "PD") then return setGains(oStCon, (0.7/nA), 0, (0.5*uL), true)
-    elseif(sT == "PID") then return setGains(oStCon, (0.95/nA), 1/(1.4*nT), 0.47*uL) end
-    else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+    if(sT == "P") then return setGains(oStCon, 0.7/mA, 0, 0, true)
+    elseif(sT == "PI") then return setGains(oStCon, (0.6/mA), 1/nT, 0, true)
+    elseif(sT == "PD") then return setGains(oStCon, (0.7/mA), 0, (0.5*uL), true)
+    elseif(sT == "PID") then return setGains(oStCon, (0.95/mA), 1/(1.4*nT), 0.47*uL) end
+    else return logError("Type mismatch <"..sT..">", oStCon) end
   else
-    if(sT == "P") then return setGains(oStCon, (0.3/nA), 0, 0, true)
-    elseif(sT == "PI") then return setGains(oStCon, (0.35/nA), (1/(1.2*nT))), 0, true)
-    elseif(sT == "PD") then return setGains(oStCon, (0.45/nA), 0, (0.3*uL), true)
-    elseif(sT == "PID") then return setGains(oStCon, (0.6/nA), (1/nT), (0.5*uL)) end
-    else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+    if(sT == "P") then return setGains(oStCon, (0.3/mA), 0, 0, true)
+    elseif(sT == "PI") then return setGains(oStCon, (0.35/mA), (1/(1.2*nT))), 0, true)
+    elseif(sT == "PD") then return setGains(oStCon, (0.45/mA), 0, (0.3*uL), true)
+    elseif(sT == "PID") then return setGains(oStCon, (0.6/mA), (1/nT), (0.5*uL)) end
+    else return logError("Type mismatch <"..sT..">", oStCon) end
   end
 end
 
