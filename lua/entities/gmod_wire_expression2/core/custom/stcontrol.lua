@@ -163,31 +163,59 @@ local function newItem(eChip, nTo)
   tableInsert(tCon, oStCon); collectgarbage(); return oStCon
 end
 
-local function tuneZieglerNichols(oStCon, uK, uT, sM)
+local function tuneZieglerNichols(oStCon, uK, uT, uL, sM, bM)
   if(not oStCon) then return logError("Object missing", nil) end
   local sM, sT = tostring(sM or "classic"), oStCon.mType[2]
   local uK, uT = (tonumber(uK) or 0), (tonumber(uT) or 0)
-  if(uK <= 0 or uT <= 0) then return oStCon end
-  if(sT == "P") then return setGains(oStCon, (0.5*uK), 0, 0, true)
-  elseif(sT == "PI") then return setGains(oStCon, (0.45*uK), (1.2/uT), 0, true)
-  elseif(sT == "PD") then return setGains(oStCon, (0.80*uK), 0, (uT/8), true)
-  elseif(sT == "PID") then
-    if    (sM == "classic") then return setGains(oStCon, 0.60 * uK, 2.0 / uT, uT / 8.0)
-    elseif(sM == "pessen" ) then return setGains(oStCon, (7*uK)/10, 5/(2*uT), (3*uT)/20)
-    elseif(sM == "sovers") then return setGains(oStCon, (uK/3), (2/uT), (uT/3))
-    elseif(sM == "novers") then return setGains(oStCon, (uK/5), (2/uT), (uT/3))
-    else return logError("PID tuning method unsuppoerted <"..sM..">", oStCon) end
-  else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+  if(bM) then if(uT <= 0 or uL <= 0) then return oStCon end
+    if(sT == "P") then return setGains(oStCon, (uT/uL), 0, 0, true)
+    elseif(sT == "PI") then return setGains(oStCon, (0.9*(uT/uL)), (0.3/uL), 0, true)
+    elseif(sT == "PD") then return setGains(oStCon, (1.1*(uT/uL)), 0, (0.8/uL), true)
+    elseif(sT == "PID") then return setGains(oStCon, (1.2*(uT/uL)), 1/(2*uL), 2/uL) end
+    else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+  else if(uK <= 0 or uT <= 0) then return oStCon end
+    if(sT == "P") then return setGains(oStCon, (0.5*uK), 0, 0, true)
+    elseif(sT == "PI") then return setGains(oStCon, (0.45*uK), (1.2/uT), 0, true)
+    elseif(sT == "PD") then return setGains(oStCon, (0.80*uK), 0, (uT/8), true)
+    elseif(sT == "PID") then
+      if(sM == "classic") then return setGains(oStCon, 0.60 * uK, 2.0 / uT, uT / 8.0)
+      elseif(sM == "pessen" ) then return setGains(oStCon, (7*uK)/10, 5/(2*uT), (3*uT)/20)
+      elseif(sM == "sovers") then return setGains(oStCon, (uK/3), (2/uT), (uT/3))
+      elseif(sM == "novers") then return setGains(oStCon, (uK/5), (2/uT), (uT/3))
+      else return logError("PID tuning method unsuppoerted <"..sM..">", oStCon) end
+    else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+  end; return oStCon
 end
 
 -- Three parameter model: Gain nK, Time nT, Delay nL
 local function tuneChoenCoon(oStCon, nK, nT, nL)
+  if(not oStCon) then return logError("Object missing", nil) end
+  if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
   local sT = oStCon.mType[2]; if(sT ~= "PID") then
-    return logError("controller not PID <"..sM..">", oStCon) end
+    return logError("Controller not PID <"..sT..">", oStCon) end
   local kP = (1/nK)*(nT/nL)*((16*nT+30)/(12*nT))
   local kI = (nL*(32+6*(nL/nT)))/(13+3*(nL/nT))
   local kD = 4*(nL/(11+2*(nL/nT)))
   return setGains(oStCon, kP, kI, kD)
+end
+
+local function tuneHronesReswick(oStCon, nK, nT, nL, bM)
+  if(not oStCon) then return logError("Object missing", nil) end
+  if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
+  local nA = (nK * nL / nT)
+  if(bM) then -- Overshoot 20%
+    if(sT == "P") then return setGains(oStCon, 0.7/nA, 0, 0, true)
+    elseif(sT == "PI") then return setGains(oStCon, (0.6/nA), 1/nT, 0, true)
+    elseif(sT == "PD") then return setGains(oStCon, (0.7/nA), 0, (0.5*uL), true)
+    elseif(sT == "PID") then return setGains(oStCon, (0.95/nA), 1/(1.4*nT), 0.47*uL) end
+    else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+  else
+    if(sT == "P") then return setGains(oStCon, (0.3/nA), 0, 0, true)
+    elseif(sT == "PI") then return setGains(oStCon, (0.35/nA), (1/(1.2*nT))), 0, true)
+    elseif(sT == "PD") then return setGains(oStCon, (0.45/nA), 0, (0.3*uL), true)
+    elseif(sT == "PID") then return setGains(oStCon, (0.6/nA), (1/nT), (0.5*uL)) end
+    else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+  end
 end
 
 local function tuneAstromHagglund()
@@ -862,18 +890,33 @@ e2function stcontrol stcontrol:setState(number nR, number nY)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneZN(number uK, number, uT)
-  return tuneZieglerNichols(this, uK, uT)
+e2function stcontrol stcontrol:tuneAutoZN(number uK, number, uT)
+  return tuneZieglerNichols(this, uK, uT, nil, nil, false)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneZN(number uK, number, uT, string sM)
-  return tuneZieglerNichols(this, uK, uT, sM)
+e2function stcontrol stcontrol:tuneAutoZN(number uK, number, uT, string sM)
+  return tuneZieglerNichols(this, uK, uT, nil, sM, false)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneProcZN(number uT, number, uL)
+  return tuneZieglerNichols(this, nil, uT, uL, nil, true)
 end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:tuneCC(number nK, number, nT, number nL)
   return tuneChoenCoon(this, nK, nT, nL)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneAutoHR(number nK, number, nT, number nL)
+  return tuneHronesReswick(this, nK, nT, nL, false)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneOverHR(number nK, number, nT, number nL)
+  return tuneHronesReswick(this, nK, nT, nL, true)
 end
 
 __e2setcost(15)
