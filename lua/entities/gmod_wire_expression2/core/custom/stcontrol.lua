@@ -174,16 +174,25 @@ local function tuneZieglerNichols(oStCon, uK, uT, sM)
   elseif(sT == "PID") then
     if    (sM == "classic") then return setGains(oStCon, 0.60 * uK, 2.0 / uT, uT / 8.0)
     elseif(sM == "pessen" ) then return setGains(oStCon, (7*uK)/10, 5/(2*uT), (3*uT)/20)
-    elseif(sM == "sovershoot") then return setGains(oStCon, (uK/3), (2/uT), (uT/3))
-    elseif(sM == "novershoot") then return setGains(oStCon, (uK/5), (2/uT), (uT/3))
+    elseif(sM == "sovers") then return setGains(oStCon, (uK/3), (2/uT), (uT/3))
+    elseif(sM == "novers") then return setGains(oStCon, (uK/5), (2/uT), (uT/3))
     else return logError("PID tuning method unsuppoerted <"..sM..">", oStCon) end
   else return logError("Controller type unsuppoerted <"..sT..">", oStCon) end
+end
+
+-- Three parameter model: Gain nK, Time nT, Delay nL
+local function tuneChoenCoon(oStCon, nK, nT, nL)
+  local sT = oStCon.mType[2]; if(sT ~= "PID") then
+    return logError("controller not PID <"..sM..">", oStCon) end
+  local kP = (1/nK)*(nT/nL)*((16*nT+30)/(12*nT))
+  local kI = (nL*(32+6*(nL/nT)))/(13+3*(nL/nT))
+  local kD = 4*(nL/(11+2*(nL/nT)))
+  return setGains(oStCon, kP, kI, kD)
 end
 
 local function tuneAstromHagglund()
   -- TODO
 end
-
 
 --[[ **************************** CONTROLLER **************************** ]]
 
@@ -860,6 +869,11 @@ end
 __e2setcost(7)
 e2function stcontrol stcontrol:tuneZN(number uK, number, uT, string sM)
   return tuneZieglerNichols(this, uK, uT, sM)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneCC(number nK, number, nT, number nL)
+  return tuneChoenCoon(this, nK, nT, nL)
 end
 
 __e2setcost(15)
