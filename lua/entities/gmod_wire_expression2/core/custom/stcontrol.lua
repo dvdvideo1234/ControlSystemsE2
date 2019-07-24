@@ -163,11 +163,18 @@ local function newItem(eChip, nTo)
   tableInsert(tCon, oStCon); collectgarbage(); return oStCon
 end
 
-local function tuneZieglerNichols(oStCon, uK, uT, uL, sM, bM)
+--[[
+ * Tunes a controller using the Ziegler-Nichols method
+ * When `bP` is true, then 3-parameter model is used
+ * otherwise P-controller is hooked to the plant and uK, uT (no model)
+ * are obrained from the output. The value `sM` is a additional
+ * tunning option for a PID controller.
+]]
+local function tuneZieglerNichols(oStCon, uK, uT, uL, sM, bP)
   if(not oStCon) then return logError("Object missing", nil) end
   local sM, sT = tostring(sM or "classic"), oStCon.mType[2]
   local uK, uT = (tonumber(uK) or 0), (tonumber(uT) or 0)
-  if(bM) then if(uT <= 0 or uL <= 0) then return oStCon end
+  if(bP) then if(uT <= 0 or uL <= 0) then return oStCon end
     if(sT == "P") then return setGains(oStCon, (uT/uL), 0, 0, true)
     elseif(sT == "PI") then return setGains(oStCon, (0.9*(uT/uL)), (0.3/uL), 0, true)
     elseif(sT == "PD") then return setGains(oStCon, (1.1*(uT/uL)), 0, (0.8/uL), true)
@@ -187,51 +194,119 @@ local function tuneZieglerNichols(oStCon, uK, uT, uL, sM, bM)
   end; return oStCon
 end
 
--- Three parameter model: Gain nK, Time nT, Delay nL
+--[[
+ * Tunes a controller using the Choen-Coon method
+ * Three parameter model: Gain nK, Time nT, Delay nL
+]]
 local function tuneChoenCoon(oStCon, nK, nT, nL)
   if(not oStCon) then return logError("Object missing", nil) end
   if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
-  local sT, mA, mT = oStCon.mType[2], (nK*nL/nT), (nL/(nL+nT))
+  local sT, mT = oStCon.mType[2], (nL/nT)
   if(sT == "P") then
-    local kP = (1/mA)*(1+(0.35*mT)/(1-mT))
+    local kP = (1/(nK*mT))*(1+(1/3)*mT)
     return setGains(oStCon, kP, 0, 0, true)
   elseif(sT == "PI") then
-    local kP = (0.9/mA)*(1+(0.92*mT)/(1-mT))
-    local kI = 1/((3.3-3*mT)/(1+1.2*mT)*nL)
+    local kP = (1/(nK*mT))*(9/10+(1/12)*mT)
+    local kI = 1/(nL*((30+3*mT)/(9+20*mT)))
     return setGains(oStCon, kP, kI, 0, true)
   elseif(sT == "PD") then
-    local kP = (1.24/mA)*(1+(0.13*mT)/(1-mT))
-    local kD = ((0.27-0.36*mT)/(1-0.87*mT)*nL)
+    local kP = (1/(nK*mT))*(5/4+(1/6)*mT)
+    local kD = nL*((6-2*mT)/(22+3*mT))
     return setGains(oStCon, kP, 0, kD, true)
   elseif(sT == "PID") then
-    local kP = (1.35/mA)*(1+(0.18*mT)/(1-mT))
-    local kI = 1/((2.5-2*mT)/(1-0.39*mT)*nL)
-    local kD = ((0.37-0.37*mT)/(1-0.87*mT)*nL)
+    local kP = (1/(nK*mT))*(4/3+(1/4)*mT)
+    local kI = 1/(nL*((32+6*mT)/(13+8*mT)))
+    local kD = nL*(4/(11+2*mT))
     return setGains(oStCon, kP, kI, kD) end
   else return logError("Type mismatch <"..sT..">", oStCon) end
 end
 
-local function tuneHronesReswick(oStCon, nK, nT, nL, bM)
+--[[
+ * Tunes a controller using the Chien-Hrones-Reswick (CHR) method
+ * Three parameter model: Gain nK, Time nT, Delay nL
+ * The flag `bM` if enabled tuning is done for 20% overshot
+ * The flag `bR` if enabled tuning is done for load rejection
+ * else the tuning is done for set point tracking
+]]
+local function tuneChienHronesReswick(oStCon, nK, nT, nL, bM, bR)
   if(not oStCon) then return logError("Object missing", nil) end
   if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
-  local mA = (nK * nL / nT)
-  if(bM) then -- Overshoot 20%
-    if(sT == "P") then return setGains(oStCon, 0.7/mA, 0, 0, true)
-    elseif(sT == "PI") then return setGains(oStCon, (0.6/mA), 1/nT, 0, true)
-    elseif(sT == "PD") then return setGains(oStCon, (0.7/mA), 0, (0.5*uL), true)
-    elseif(sT == "PID") then return setGains(oStCon, (0.95/mA), 1/(1.4*nT), 0.47*uL) end
-    else return logError("Type mismatch <"..sT..">", oStCon) end
-  else
-    if(sT == "P") then return setGains(oStCon, (0.3/mA), 0, 0, true)
-    elseif(sT == "PI") then return setGains(oStCon, (0.35/mA), (1/(1.2*nT))), 0, true)
-    elseif(sT == "PD") then return setGains(oStCon, (0.45/mA), 0, (0.3*uL), true)
-    elseif(sT == "PID") then return setGains(oStCon, (0.6/mA), (1/nT), (0.5*uL)) end
-    else return logError("Type mismatch <"..sT..">", oStCon) end
+  local mA, sT = (nK * nL / nT), oStCon.mType[2]
+  if(bR) then -- Load rejection
+    if(bM) then -- Overshoot 20%
+      if(sT == "P") then return setGains(oStCon, 0.7/mA, 0, 0, true)
+      elseif(sT == "PI") then return setGains(oStCon, (0.7/mA), (1/(2.3*nT)), 0, true)
+      elseif(sT == "PD") then return setGains(oStCon, (0.82/mA), 0, (0.5*uL), true)
+      elseif(sT == "PID") then return setGains(oStCon, (1.2/mA), 1/(2*nT), 0.42*uL) end
+      else return logError("Type mismatch <"..sT..">", oStCon) end
+    else
+      if(sT == "P") then return setGains(oStCon, (0.3/mA), 0, 0, true)
+      elseif(sT == "PI") then return setGains(oStCon, (0.6/mA), (1/(4*nT)), 0, true)
+      elseif(sT == "PD") then return setGains(oStCon, (0.75/mA), 0, (0.5*uL), true)
+      elseif(sT == "PID") then return setGains(oStCon, (0.95/mA), (1/(2.4*nT)), (0.42*uL)) end
+      else return logError("Type mismatch <"..sT..">", oStCon) end
+    end
+  else -- Set point tracking
+    if(bM) then -- Overshoot 20%
+      if(sT == "P") then return setGains(oStCon, 0.7/mA, 0, 0, true)
+      elseif(sT == "PI") then return setGains(oStCon, (0.6/mA), 1/nT, 0, true)
+      elseif(sT == "PD") then return setGains(oStCon, (0.7/mA), 0, (0.45*uL), true)
+      elseif(sT == "PID") then return setGains(oStCon, (0.95/mA), 1/(1.4*nT), 0.47*uL) end
+      else return logError("Type mismatch <"..sT..">", oStCon) end
+    else
+      if(sT == "P") then return setGains(oStCon, (0.3/mA), 0, 0, true)
+      elseif(sT == "PI") then return setGains(oStCon, (0.35/mA), (1/(1.2*nT)), 0, true)
+      elseif(sT == "PD") then return setGains(oStCon, (0.45/mA), 0, (0.45*uL), true)
+      elseif(sT == "PID") then return setGains(oStCon, (0.6/mA), (1/nT), (0.5*uL)) end
+      else return logError("Type mismatch <"..sT..">", oStCon) end
+    end
   end
 end
 
-local function tuneAstromHagglund()
-  -- TODO
+--[[
+ * Tunes a controller using the Astrom-Hagglund method
+ * Three parameter model: Gain nK, Time nT, Delay nL
+]]
+local function tuneAstromHagglund(oStCon, nK, nT, nL)
+  if(not oStCon) then return logError("Object missing", nil) end
+  if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
+  local kP = (1/nK)*(0.2+0.45*(nT/nL))
+  local kI = 1/(((0.4*nL+0.8*nT)/(nL+0.1*nT))*nL)
+  local kD = (0.5*nL*nT)/(0.3*nL+nT)
+  return setGains(oStCon, kP, kI, kD)
+end
+
+--[[
+ * Tunes a controller using the integrall error method
+ * Three parameter model: Gain nK, Time nT, Delay nL
+]]
+local tIE ={
+  ISE  = {
+    PI  = {1.305, -0.959, 0.492, 0.739, 0    , 0    },
+    PID = {1.495, -0.945, 1.101, 0.771, 0.560, 1.006}
+  },
+  IAE  = {
+    PI  = {0.984, -0.986, 0.608, 0.707, 0    , 0    },
+    PID = {1.435, -0.921, 0.878, 0.749, 0.482, 1.137}
+  },
+  ITAE = {
+    PI  = {0.859, -0.977, 0.674, 0.680, 0    , 0    },
+    PID = {1.357, -0.947, 0.842, 0.738, 0.381, 0.995}
+  }
+}
+local function tuneIE(oStCon, nK, nT, nL, sM)
+  if(not oStCon) then return logError("Object missing", nil) end
+  if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
+  local sM, sT, tT = tostring(sM or "ISE"), oStCon.mType[2], nil
+  tT = tIE[sM]; if(not isHere(tT)) then
+    return logError("Mode mismatch <"..sM..">", oStCon) end
+  tT = tT[sT]; if(not isHere(tT)) then
+    return logError("Type mismatch <"..sT..">", oStCon) end
+  local A, B, C, D, E, F = unpack(tT)
+  local kP = (A*(nL/nT)^B)/nK
+  local kI = 1/((nT/C)*(nL/nT)^D)
+  local kD = nT*E*(nL/nT)^F
+  return setGains(oStCon, kP, kI, kD)
 end
 
 --[[ **************************** CONTROLLER **************************** ]]
@@ -902,33 +977,63 @@ e2function stcontrol stcontrol:setState(number nR, number nY)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneAutoZN(number uK, number, uT)
+e2function stcontrol stcontrol:tuneAutoZN(number uK, number uT)
   return tuneZieglerNichols(this, uK, uT, nil, nil, false)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneAutoZN(number uK, number, uT, string sM)
+e2function stcontrol stcontrol:tuneAutoZN(number uK, number uT, string sM)
   return tuneZieglerNichols(this, uK, uT, nil, sM, false)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneProcZN(number uT, number, uL)
+e2function stcontrol stcontrol:tuneProcZN(number uT, number uL)
   return tuneZieglerNichols(this, nil, uT, uL, nil, true)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneCC(number nK, number, nT, number nL)
+e2function stcontrol stcontrol:tuneProcCC(number nK, number nT, number nL)
   return tuneChoenCoon(this, nK, nT, nL)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneAutoHR(number nK, number, nT, number nL)
-  return tuneHronesReswick(this, nK, nT, nL, false)
+e2function stcontrol stcontrol:tuneProcCHRSP(number nK, number nT, number nL)
+  return tuneChienHronesReswick(this, nK, nT, nL, false, false)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneOverHR(number nK, number, nT, number nL)
-  return tuneHronesReswick(this, nK, nT, nL, true)
+e2function stcontrol stcontrol:tuneOverCHRSP(number nK, number nT, number nL)
+  return tuneChienHronesReswick(this, nK, nT, nL, true, false)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneProcCHRLR(number nK, number nT, number nL)
+  return tuneChienHronesReswick(this, nK, nT, nL, false, true)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneOverCHRLR(number nK, number nT, number nL)
+  return tuneChienHronesReswick(this, nK, nT, nL, true, true)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneAH(number nK, number nT, number nL)
+  return tuneAstromHagglund(this, nK, nT, nL)
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneISE(number nK, number nT, number nL)
+  return tuneIE(this, nK, nT, nL, "ISE")
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneIAE(number nK, number nT, number nL)
+  return tuneIE(this, nK, nT, nL, "IAE")
+end
+
+__e2setcost(7)
+e2function stcontrol stcontrol:tuneITAE(number nK, number nT, number nL)
+  return tuneIE(this, nK, nT, nL, "ITAE")
 end
 
 __e2setcost(15)
