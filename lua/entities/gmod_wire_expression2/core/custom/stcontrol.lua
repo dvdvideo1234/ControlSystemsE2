@@ -987,8 +987,8 @@ e2function stcontrol stcontrol:tuneAutoZN(number uK, number uT, string sM)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneProcZN(number uT, number uL)
-  return tuneZieglerNichols(this, nil, uT, uL, nil, true)
+e2function stcontrol stcontrol:tuneProcZN(number uK, number uT, number uL)
+  return tuneZieglerNichols(this, uK, uT, uL, nil, true)
 end
 
 __e2setcost(7)

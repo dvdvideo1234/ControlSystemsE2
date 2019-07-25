@@ -130,4 +130,4 @@ DSC["tuneOverCHRSP(xsc:nnn)"] = act[8].." the "..xsc.." using the Chien-Hrones-R
 DSC["tuneProcCC(xsc:nnn)"] = act[8].." the "..xsc.." using the Choen-Coon method (CC)"
 DSC["tuneProcCHRLR(xsc:nnn)"] = act[8].." the "..xsc.." using the Chien-Hrones-Reswick method (CHR) load rejection"
 DSC["tuneProcCHRSP(xsc:nnn)"] = act[8].." the "..xsc.." using the Chien-Hrones-Reswick method (CHR) set point track"
-DSC["tuneProcZN(xsc:nn)"] = act[8].." the "..xsc.." using the Ziegler-Nichols plant process method (ZN)"
+DSC["tuneProcZN(xsc:nnn)"] = act[8].." the "..xsc.." using the Ziegler-Nichols plant process method (ZN)"
