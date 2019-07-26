@@ -11,6 +11,7 @@ local LocalToWorld = LocalToWorld
 local WorldToLocal = WorldToLocal
 local bitBor = bit.bor
 local mathAbs = math.abs
+local mathSqrt = math.sqrt
 local mathClamp = math.Clamp
 local tableRemove = table.remove
 local tableInsert = table.insert
@@ -57,6 +58,12 @@ end
 
 local function isHere(vV)
   return (vV ~= nil)
+end
+
+local function getNorm(tV)
+  local nN = 0; if(not isHere(tV)) then return nN end
+  for ID = 1, 3 do local nV = tonumber(tV[ID]) or 0
+    nN = nN + tV[ID]^2 end; return mathSqrt(nN)
 end
 
 local function remValue(tSrc, aKey, bCall)
@@ -209,7 +216,9 @@ local function newItem(eChip, vEnt, vPos, vDir, nLen)
   if(isEntity(vEnt)) then oFSen.mEnt = vEnt -- Store attachment entity to manage local sampling
     oFSen.mHit.Ent = {SKIP={[vEnt]=true},ONLY={}} -- Store the base entity for ignore
   else oFSen.mHit.Ent, oFSen.mEnt = {SKIP={},ONLY={}}, nil end -- Make sure the entity is cleared
-  oFSen.mLen = mathClamp(tonumber(nLen or 0),-gnMaxBeam,gnMaxBeam) -- How long the length is
+  oFSen.mLen = (tonumber(nLen) or 0) -- How long the flash sensor length will be. Must be positive
+  oFSen.mLen = (oFSen.mLen == 0 and getNorm(vDir) or oFSen.mLen)
+  oFSen.mLen = mathClamp(oFSen.mLen,-gnMaxBeam,gnMaxBeam)
   -- Local tracer position the trace starts from
   oFSen.mPos = Vector(vPos[1],vPos[2],vPos[3])
   -- Local tracer direction to read the data of
