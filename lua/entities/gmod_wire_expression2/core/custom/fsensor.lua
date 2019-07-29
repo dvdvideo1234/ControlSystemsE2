@@ -203,6 +203,18 @@ local function remSensorEntity(eChip)
   logStatus("Clear ["..tostring(mSen).."] items for "..tostring(eChip))
 end
 
+local function trcLocal(oFSen, eB)
+  if(not oFSen) then return nil end
+  local eE = (eB and eB or oFSen.mEnt)
+  if(not isEntity(eE)) then return oFSen end
+  local eP, eA = eE:GetPos(), eE:GetAngles()
+  local trS, trE = oFSen.mTrI.start, oFSen.mTrI.endpos
+  trS:Set(oFSen.mPos); trS:Rotate(eA); trS:Add(eP)
+  trE:Set(oFSen.mDir); trE:Rotate(eA); trE:Add(trS)
+  -- http://wiki.garrysmod.com/page/util/TraceLine
+  utilTraceLine(oFSen.mTrI); return oFSen
+end
+
 local function newItem(eChip, vEnt, vPos, vDir, nLen)
   if(not isEntity(eChip)) then
     return logError("Entity invalid", nil) end
@@ -574,14 +586,12 @@ end
 
 __e2setcost(12)
 e2function fsensor fsensor:smpLocal()
-  if(not this) then return nil end; local eE = this.mEnt
-  if(not isEntity(eE)) then return this end
-  local eP, eA = eE:GetPos(), eE:GetAngles()
-  local trS, trE = this.mTrI.start, this.mTrI.endpos
-  trS:Set(this.mPos); trS:Rotate(eA); trS:Add(eP)
-  trE:Set(this.mDir); trE:Rotate(eA); trE:Add(trS)
-  -- http://wiki.garrysmod.com/page/util/TraceLine
-  utilTraceLine(this.mTrI); return this
+  return trcLocal(this)
+end
+
+__e2setcost(12)
+e2function fsensor fsensor:smpLocal(entity vE)
+  return trcLocal(this, vE)
 end
 
 __e2setcost(8)
@@ -653,21 +663,21 @@ __e2setcost(8)
 e2function vector fsensor:getHitPos()
   if(not this) then return {0,0,0} end
   local trV = this.mTrO.HitPos
-  return (trV and {trV[1], trV[2], trV[3]} or {0,0,0})
+  return (trV and {trV.x, trV.y, trV.z} or {0,0,0})
 end
 
 __e2setcost(8)
 e2function vector fsensor:getHitNormal()
   if(not this) then return {0,0,0} end
   local trV = this.mTrO.HitNormal
-  return (trV and {trV[1], trV[2], trV[3]} or {0,0,0})
+  return (trV and {trV.x, trV.y, trV.z} or {0,0,0})
 end
 
 __e2setcost(8)
 e2function vector fsensor:getNormal()
   if(not this) then return {0,0,0} end
   local trV = this.mTrO.Normal
-  return (trV and {trV[1], trV[2], trV[3]} or {0,0,0})
+  return (trV and {trV.x, trV.y, trV.z} or {0,0,0})
 end
 
 __e2setcost(8)
@@ -681,7 +691,7 @@ __e2setcost(8)
 e2function vector fsensor:getStartPos()
   if(not this) then return {0,0,0} end
   local trV = this.mTrO.StartPos
-  return (trV and {trV[1], trV[2], trV[3]} or {0,0,0})
+  return (trV and {trV.x, trV.y, trV.z} or {0,0,0})
 end
 
 __e2setcost(3)
