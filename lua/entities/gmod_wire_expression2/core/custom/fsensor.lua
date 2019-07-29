@@ -198,9 +198,10 @@ end
 
 local function remSensorEntity(eChip)
   if(not isEntity(eChip)) then return end
-  local tSen = gtStoreOOP[eChip]; if(not next(tSen)) then return end
+  local tSen = gtStoreOOP[eChip]; if(not tSen) then return end
   local mSen = #tSen; for ID = 1, mSen do tableRemove(tSen) end
-  logStatus("Clear ["..tostring(mSen).."] items for "..tostring(eChip))
+  gtStoreOOP[eChip] = nil; collectgarbage() -- Preform table cleanup
+  logStatus("Cleanup ["..tostring(mSen).."] items for "..tostring(eChip))
 end
 
 local function trcLocal(oFSen, eB)
@@ -211,6 +212,14 @@ local function trcLocal(oFSen, eB)
   local trS, trE = oFSen.mTrI.start, oFSen.mTrI.endpos
   trS:Set(oFSen.mPos); trS:Rotate(eA); trS:Add(eP)
   trE:Set(oFSen.mDir); trE:Rotate(eA); trE:Add(trS)
+  -- http://wiki.garrysmod.com/page/util/TraceLine
+  utilTraceLine(oFSen.mTrI); return oFSen
+end
+
+local function trcWorld(oFSen)
+  if(not oFSen) then return nil end
+  local trS, trE = oFSen.mTrI.start, oFSen.mTrI.endpos
+  trS:Set(oFSen.mPos); trE:Set(oFSen.mDir); trE:Add(trS)
   -- http://wiki.garrysmod.com/page/util/TraceLine
   utilTraceLine(oFSen.mTrI); return oFSen
 end
@@ -462,7 +471,7 @@ end
 __e2setcost(3)
 e2function vector fsensor:getOrigin()
   if(not this) then return {0,0,0} end
-  return {this.mPos[1], this.mPos[2], this.mPos[3]}
+  return {this.mPos.x, this.mPos.y, this.mPos.z}
 end
 
 __e2setcost(3)
@@ -498,14 +507,14 @@ end
 __e2setcost(3)
 e2function fsensor fsensor:setOrigin(vector vO)
   if(not this) then return nil end
-  this.mPos[1], this.mPos[2], this.mPos[3] = vO[1], vO[2], vO[3]
+  this.mPos.x, this.mPos.y, this.mPos.z = vO[1], vO[2], vO[3]
   return this
 end
 
 __e2setcost(3)
 e2function vector fsensor:getDirection()
   if(not this) then return nil end
-  return {this.mDir[1], this.mDir[2], this.mDir[3]}
+  return {this.mDir.x, this.mDir.y, this.mDir.z}
 end
 
 __e2setcost(3)
@@ -541,7 +550,7 @@ end
 __e2setcost(3)
 e2function fsensor fsensor:setDirection(vector vD)
   if(not this) then return nil end
-  this.mDir[1], this.mDir[2], this.mDir[3] = vD[1], vD[2], vD[3]
+  this.mDir.x, this.mDir.y, this.mDir.z = vD[1], vD[2], vD[3]
   this.mDir:Normalize(); this.mDir:Mul(this.mLen or 0)
   return this
 end
@@ -584,9 +593,23 @@ e2function fsensor fsensor:setCollisionGroup(number nN)
   this.mTrI.collisiongroup = nN; return this
 end
 
+__e2setcost(3)
+e2function vector fsensor:getStart()
+  if(not this) then return {0,0,0} end
+  local oTr = oFSen.mTrI.start
+  return {oTr.x, oTr.y, oTr.z}
+end
+
+__e2setcost(3)
+e2function vector fsensor:getStop()
+  if(not this) then return {0,0,0} end
+  local oTr = oFSen.mTrI.endpos
+  return {oTr.x, oTr.y, oTr.z}
+end
+
 __e2setcost(12)
 e2function fsensor fsensor:smpLocal()
-  return trcLocal(this)
+  return trcLocal(this, nil)
 end
 
 __e2setcost(12)
@@ -596,11 +619,7 @@ end
 
 __e2setcost(8)
 e2function fsensor fsensor:smpWorld()
-  if(not this) then return nil end
-  local trS, trE = this.mTrI.start, this.mTrI.endpos
-  trS:Set(this.mPos); trE:Set(this.mDir); trE:Add(trS)
-  -- http://wiki.garrysmod.com/page/util/TraceLine
-  utilTraceLine(this.mTrI); return this
+  return trcWorld(this)
 end
 
 __e2setcost(3)
