@@ -60,12 +60,12 @@ local function remValue(tSrc, aKey, bCall)
   tSrc[aKey] = nil; if(bCall) then collectgarbage() end
 end
 
-local function logError(sM, ...)
-  outError("E2:stcontrol:"..tostring(sM)); return ...
+local function logError(sMsg, ...)
+  outError("E2:stcontrol:"..tostring(sMsg)); return ...
 end
 
-local function logStatus(sM, ...)
-  outPrint("E2:stcontrol:"..tostring(sM)); return ...
+local function logStatus(sMsg, ...)
+  outPrint("E2:stcontrol:"..tostring(sMsg)); return ...
 end
 
 local function getControllersCount() local mC = 0

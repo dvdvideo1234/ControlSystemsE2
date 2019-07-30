@@ -40,6 +40,7 @@ E2Lib.RegisterExtension("fsensor", true, "Lets E2 chips trace ray attachments an
 local gsZeroStr   = "" -- Empty string to use instead of creating one everywhere
 local gaZeroAng   = Angle() -- Dummy zero angle for transformations
 local gvZeroVec   = Vector() -- Dummy zero vector for transformations
+local gtStringMT  = getmetatable(gsZeroStr) -- Store the string metatable
 local gtStoreOOP  = {} -- Store flash sensors here linked to the entity of the E2
 local gnMaxBeam   = 50000 -- The tracer maximum length just about one cube map
 local gtEmptyVar  = {["#empty"]=true}; gtEmptyVar[gsZeroStr] = true -- Variable being set to empty string
@@ -62,20 +63,21 @@ end
 
 local function getNorm(tV)
   local nN = 0; if(not isHere(tV)) then return nN end
+  if(tonumber(tV)) then return math.abs(tV) end
   for ID = 1, 3 do local nV = tonumber(tV[ID]) or 0
-    nN = nN + tV[ID]^2 end; return mathSqrt(nN)
+    nN = nN + nV^2 end; return mathSqrt(nN)
 end
 
 local function remValue(tSrc, aKey, bCall)
   tSrc[aKey] = nil; if(bCall) then collectgarbage() end
 end
 
-local function logError(sM, ...)
-  outError("E2:fsensor:"..tostring(sM)); return ...
+local function logError(sMsg, ...)
+  outError("E2:fsensor:"..tostring(sMsg)); return ...
 end
 
-local function logStatus(sM, ...)
-  outPrint("E2:fsensor:"..tostring(sM)); return ...
+local function logStatus(sMsg, ...)
+  outPrint("E2:fsensor:"..tostring(sMsg)); return ...
 end
 
 local function convArrayKeys(tA)
@@ -107,7 +109,7 @@ local function convDirLocal(oFSen, vE, vA)
   if(not (isEntity(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
   local oV, oA = Vector(oD[1], oD[2], oD[3]), (vA and vA or oE:GetAngles())
   return {oV:Dot(oA:Forward()), -oV:Dot(oA:Right()), oV:Dot(oA:Up())}
-end
+end -- Gmod +Y is the left direction
 
 local function convDirWorld(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
@@ -224,8 +226,8 @@ local function trcWorld(oFSen)
   utilTraceLine(oFSen.mTrI); return oFSen
 end
 
-local function newItem(eChip, vEnt, vPos, vDir, nLen)
-  if(not isEntity(eChip)) then
+local function newItem(oSelf, vEnt, vPos, vDir, nLen)
+  local eChip = oSelf.entity; if(not isEntity(eChip)) then
     return logError("Entity invalid", nil) end
   local nTot, nMax = getSensorsCount(), varMaxTotal:GetInt()
   if(nMax <= 0) then remSensorEntity(eChip)
@@ -237,16 +239,20 @@ local function newItem(eChip, vEnt, vPos, vDir, nLen)
   if(isEntity(vEnt)) then oFSen.mEnt = vEnt -- Store attachment entity to manage local sampling
     oFSen.mHit.Ent = {SKIP={[vEnt]=true},ONLY={}} -- Store the base entity for ignore
   else oFSen.mHit.Ent, oFSen.mEnt = {SKIP={},ONLY={}}, nil end -- Make sure the entity is cleared
-  oFSen.mLen = (tonumber(nLen) or 0) -- How long the flash sensor length will be. Must be positive
+  -- Local tracer position the trace starts from
+  oFSen.mPos, oFSen.mDir = Vector(), Vector()
+  if(isHere(vPos)) then oFSen.mPos.x, oFSen.mPos.y, oFSen.mPos.z = vPos[1], vPos[2], vPos[3] end
+  -- Local tracer direction to read the data of
+  if(isHere(vDir)) then oFSen.mDir.x, oFSen.mDir.y, oFSen.mDir.z = vDir[1], vDir[2], vDir[3] end
+  if(oFSen.mDir:Length() == 0) then logStatus("Direction zero ["..tostring(oFSen.mDir).."] !") end
+  -- How long the flash sensor length will be. Must be positive
+  oFSen.mLen = (tonumber(nLen) or 0)
   oFSen.mLen = (oFSen.mLen == 0 and getNorm(vDir) or oFSen.mLen)
   oFSen.mLen = mathClamp(oFSen.mLen,-gnMaxBeam,gnMaxBeam)
-  -- Local tracer position the trace starts from
-  oFSen.mPos = Vector(vPos[1],vPos[2],vPos[3])
-  -- Local tracer direction to read the data of
-  oFSen.mDir = Vector(vDir[1],vDir[2],vDir[3])
+  -- Internal failsafe configurations
   oFSen.mDir:Normalize() -- Normalize the direction
   oFSen.mDir:Mul(oFSen.mLen) -- Multiply to add in real-time
-  oFSen.mLen = mathAbs(oFSen.mLen) -- Length absolute
+  oFSen.mLen = mathAbs(oFSen.mLen) -- Length to absolute
   -- http://wiki.garrysmod.com/page/Structures/TraceResult
   oFSen.mTrO = {} -- Trace output parameters
   -- http://wiki.garrysmod.com/page/Structures/Trace
@@ -288,42 +294,62 @@ end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor(vector vP, vector vD, number nL)
-  return newItem(self.entity, this, vP, vD, nL)
+  return newItem(self, this, vP, vD, nL)
 end
 
 __e2setcost(20)
 e2function fsensor newFSensor(vector vP, vector vD, number nL)
-  return newItem(self.entity, nil, vP, vD, nL)
+  return newItem(self, nil, vP, vD, nL)
 end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor(vector vP, vector vD)
-  return newItem(self.entity, this, vP, vD, 0)
+  return newItem(self, this, vP, vD)
 end
 
 __e2setcost(20)
 e2function fsensor newFSensor(vector vP, vector vD)
-  return newItem(self.entity, nil, vP, vD, 0)
+  return newItem(self, nil, vP, vD)
+end
+
+__e2setcost(20)
+e2function fsensor entity:setFSensor(vector vP, number nL)
+  return newItem(self, this, vP, nil, nL)
+end
+
+__e2setcost(20)
+e2function fsensor newFSensor(vector vP, number nL)
+  return newItem(self, nil, vP, nil, nL)
 end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor(vector vP)
-  return newItem(self.entity, this, vP, {0,0,0}, 0)
+  return newItem(self, this, vP, nil, nil)
 end
 
 __e2setcost(20)
 e2function fsensor newFSensor(vector vP)
-  return newItem(self.entity, nil, vP, {0,0,0}, 0)
+  return newItem(self, nil, vP, nil, nil)
+end
+
+__e2setcost(20)
+e2function fsensor entity:setFSensor(number nL)
+  return newItem(self, this, nil, nil, nL)
+end
+
+__e2setcost(20)
+e2function fsensor newFSensor(number nL)
+  return newItem(self, nil, nil, nil, nL)
 end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor()
-  return newItem(self.entity,this, {0,0,0}, {0,0,0}, 0)
+  return newItem(self, this, nil, nil, nil)
 end
 
 __e2setcost(20)
 e2function fsensor newFSensor()
-  return newItem(self.entity, nil, {0,0,0}, {0,0,0}, 0)
+  return newItem(self, nil, nil, nil, nil)
 end
 
 __e2setcost(1)
@@ -551,7 +577,7 @@ __e2setcost(3)
 e2function fsensor fsensor:setDirection(vector vD)
   if(not this) then return nil end
   this.mDir.x, this.mDir.y, this.mDir.z = vD[1], vD[2], vD[3]
-  this.mDir:Normalize(); this.mDir:Mul(this.mLen or 0)
+  this.mDir:Normalize(); this.mDir:Mul(this.mLen)
   return this
 end
 
