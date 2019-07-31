@@ -178,7 +178,7 @@ local function tuneZieglerNichols(oStCon, uK, uT, uL, sM, bP)
     if(sT == "P") then return setGains(oStCon, (uT/uL), 0, 0, true)
     elseif(sT == "PI") then return setGains(oStCon, (0.9*(uT/uL)), (0.3/uL), 0, true)
     elseif(sT == "PD") then return setGains(oStCon, (1.1*(uT/uL)), 0, (0.8/uL), true)
-    elseif(sT == "PID") then return setGains(oStCon, (1.2*(uT/uL)), 1/(2*uL), 2/uL) end
+    elseif(sT == "PID") then return setGains(oStCon, (1.2*(uT/uL)), 1/(2*uL), 2/uL)
     else return logError("Type mismatch <"..sT..">", oStCon) end
   else if(uK <= 0 or uT <= 0) then return oStCon end
     if(sT == "P") then return setGains(oStCon, (0.5*uK), 0, 0, true)
@@ -217,7 +217,7 @@ local function tuneChoenCoon(oStCon, nK, nT, nL)
     local kP = (1/(nK*mT))*(4/3+(1/4)*mT)
     local kI = 1/(nL*((32+6*mT)/(13+8*mT)))
     local kD = nL*(4/(11+2*mT))
-    return setGains(oStCon, kP, kI, kD) end
+    return setGains(oStCon, kP, kI, kD)
   else return logError("Type mismatch <"..sT..">", oStCon) end
 end
 
@@ -237,13 +237,13 @@ local function tuneChienHronesReswick(oStCon, nK, nT, nL, bM, bR)
       if(sT == "P") then return setGains(oStCon, 0.7/mA, 0, 0, true)
       elseif(sT == "PI") then return setGains(oStCon, (0.7/mA), (1/(2.3*nT)), 0, true)
       elseif(sT == "PD") then return setGains(oStCon, (0.82/mA), 0, (0.5*uL), true)
-      elseif(sT == "PID") then return setGains(oStCon, (1.2/mA), 1/(2*nT), 0.42*uL) end
+      elseif(sT == "PID") then return setGains(oStCon, (1.2/mA), 1/(2*nT), 0.42*uL)
       else return logError("Type mismatch <"..sT..">", oStCon) end
     else
       if(sT == "P") then return setGains(oStCon, (0.3/mA), 0, 0, true)
       elseif(sT == "PI") then return setGains(oStCon, (0.6/mA), (1/(4*nT)), 0, true)
       elseif(sT == "PD") then return setGains(oStCon, (0.75/mA), 0, (0.5*uL), true)
-      elseif(sT == "PID") then return setGains(oStCon, (0.95/mA), (1/(2.4*nT)), (0.42*uL)) end
+      elseif(sT == "PID") then return setGains(oStCon, (0.95/mA), (1/(2.4*nT)), (0.42*uL))
       else return logError("Type mismatch <"..sT..">", oStCon) end
     end
   else -- Set point tracking
@@ -251,13 +251,13 @@ local function tuneChienHronesReswick(oStCon, nK, nT, nL, bM, bR)
       if(sT == "P") then return setGains(oStCon, 0.7/mA, 0, 0, true)
       elseif(sT == "PI") then return setGains(oStCon, (0.6/mA), 1/nT, 0, true)
       elseif(sT == "PD") then return setGains(oStCon, (0.7/mA), 0, (0.45*uL), true)
-      elseif(sT == "PID") then return setGains(oStCon, (0.95/mA), 1/(1.4*nT), 0.47*uL) end
+      elseif(sT == "PID") then return setGains(oStCon, (0.95/mA), 1/(1.4*nT), 0.47*uL)
       else return logError("Type mismatch <"..sT..">", oStCon) end
     else
       if(sT == "P") then return setGains(oStCon, (0.3/mA), 0, 0, true)
       elseif(sT == "PI") then return setGains(oStCon, (0.35/mA), (1/(1.2*nT)), 0, true)
       elseif(sT == "PD") then return setGains(oStCon, (0.45/mA), 0, (0.45*uL), true)
-      elseif(sT == "PID") then return setGains(oStCon, (0.6/mA), (1/nT), (0.5*uL)) end
+      elseif(sT == "PID") then return setGains(oStCon, (0.6/mA), (1/nT), (0.5*uL))
       else return logError("Type mismatch <"..sT..">", oStCon) end
     end
   end
