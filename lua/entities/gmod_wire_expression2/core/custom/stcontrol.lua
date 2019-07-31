@@ -137,8 +137,8 @@ local function getType(oStCon)
   end; return tableConcat(oStCon.mType, "-")
 end
 
-local function newItem(eChip, nTo)
-  if(not isEntity(eChip)) then
+local function newItem(oSelf, nTo)
+  local eChip = oSelf.entity; if(not isEntity(eChip)) then
     return logError("Entity invalid", nil) end
   local nTot, nMax = getControllersCount(), varMaxTotal:GetInt()
   if(nMax <= 0) then remControllersEntity(eChip)
@@ -326,12 +326,12 @@ end
 
 __e2setcost(20)
 e2function stcontrol newStControl()
-  return newItem(self.entity)
+  return newItem(self)
 end
 
 __e2setcost(20)
 e2function stcontrol newStControl(number nTo)
-  return newItem(self.entity, nTo)
+  return newItem(self, nTo)
 end
 
 __e2setcost(1)
@@ -347,9 +347,14 @@ end
 __e2setcost(15)
 e2function number stcontrol:remSelf()
   if(not this) then return 0 end
-  local tCon = gtStoreOOP[this.mSet]; if(not tCon) then return 0 end
-  for ID = 1, #tCon do if(tCon[ID] == this) then tableRemove(tCon, ID); break end
-  end; return 1
+  local tSet = gtStoreOOP[this.mSet]
+  if(not tSet) then return 0 end
+  for ID = 1, #tSet do
+    if(tSet[ID] == this) then
+      tableRemove(tSet, ID)
+      return ID -- Remove ID found
+    end -- All other IDs
+  end; return 0
 end
 
 __e2setcost(20)

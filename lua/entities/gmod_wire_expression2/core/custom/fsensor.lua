@@ -365,9 +365,14 @@ end
 __e2setcost(15)
 e2function number fsensor:remSelf()
   if(not this) then return 0 end
-  local tSen = gtStoreOOP[this.mSet]; if(not tSen) then return 0 end
-  for ID = 1, #tSen do if(tSen[ID] == this) then tableRemove(tSen, ID); break end
-  end; return 1
+  local tSet = gtStoreOOP[this.mSet]
+  if(not tSet) then return 0 end
+  for ID = 1, #tSet do
+    if(tSet[ID] == this) then
+      tableRemove(tSet, ID)
+      return ID -- Remove ID found
+    end -- All other IDs
+  end; return 0
 end
 
 
