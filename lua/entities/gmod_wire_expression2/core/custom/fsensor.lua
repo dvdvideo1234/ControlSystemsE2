@@ -47,6 +47,7 @@ local gtEmptyVar  = {["#empty"]=true}; gtEmptyVar[gsZeroStr] = true -- Variable 
 local gsVarPrefx  = "wire_expression2_fsensor" -- This is used for variable prefix
 local gtBoolToNum = {[true]=1,[false]=0} -- This is used to convert between GLua boolean and wire boolean
 local gtMethList  = {} -- Placeholder for blacklist and convar prefix
+local gtConvEnab  = {["LocalToWorld"] = LocalToWorld, ["WorldToLocal"] = WorldToLocal} -- Cooordinate conversion list
 local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
 local varMethSkip = CreateConVar(gsVarPrefx.."_skip", gsZeroStr, gnServContr, "E2 FSensor entity method black list")
 local varMethOnly = CreateConVar(gsVarPrefx.."_only", gsZeroStr, gnServContr, "E2 FSensor entity method white list")
@@ -121,6 +122,7 @@ end
 
 local function convOrgEnt(oFSen, sF, vE)
   if(not oFSen) then return {0,0,0} end
+  if(not gtConvEnab[sF or gsZeroStr]) then return {0,0,0} end
   local oO, oE = oFSen.mPos, (vE or oFSen.mEnt)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
   local oV = Vector(oO[1], oO[2], oO[3])
@@ -129,14 +131,12 @@ end
 
 local function convOrgUCS(oFSen, sF, vP, vA)
   if(not oFSen) then return {0,0,0} end
+  if(not gtConvEnab[sF or gsZeroStr]) then return {0,0,0} end
   local oO, oE = oFSen.mPos, (vE or oFSen.mEnt)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
   local oV, vN, aN = Vector(oO[1], oO[2], oO[3])
-  if(sF == "LocalToWorld") then
-    vN, aN = LocalToWorld(oV, gaZeroAng, vP, vA); oV:Set(vN)
-  elseif(sF == "WorldToLocal") then
-    vN, aN = WorldToLocal(oV, gaZeroAng, vP, vA); oV:Set(vN)
-  end; return {oV[1], oV[2], oV[3]}
+  vN, aN = gtConvEnab[sF](oV, gaZeroAng, vP, vA); oV:Set(vN)
+  return {oV[1], oV[2], oV[3]}
 end
 
 --[[ Returns the hit status based on filter parameters
@@ -206,11 +206,14 @@ local function remSensorEntity(eChip)
   logStatus("Cleanup ["..tostring(mSen).."] items for "..tostring(eChip))
 end
 
-local function trcLocal(oFSen, eB)
+local function trcLocal(oFSen, eB, vP, vA)
   if(not oFSen) then return nil end
-  local eE = (eB and eB or oFSen.mEnt)
-  if(not isEntity(eE)) then return oFSen end
-  local eP, eA = eE:GetPos(), eE:GetAngles()
+  local eE, eP, eA = (eB and eB or oFSen.mEnt)
+  if(not isEntity(eE)) then
+    eP, eA = Vector(), Angle()
+    eP.x, eP.y, eP.z = vP[1], vP[2], vP[3]
+    eA.p, eP.y, eP.r = vA[1], vA[2], vA[3]
+  else eP, eA = eE:GetPos(), eE:GetAngles() end
   local trS, trE = oFSen.mTrI.start, oFSen.mTrI.endpos
   trS:Set(oFSen.mPos); trS:Rotate(eA); trS:Add(eP)
   trE:Set(oFSen.mDir); trE:Rotate(eA); trE:Add(trS)
@@ -237,7 +240,7 @@ local function newItem(oSelf, vEnt, vPos, vDir, nLen)
   local oFSen, tSen = {}, gtStoreOOP[eChip]; oFSen.mSet, oFSen.mHit = eChip, {Size=0, ID={}};
   if(not tSen) then gtStoreOOP[eChip] = {}; tSen = gtStoreOOP[eChip] end
   if(isEntity(vEnt)) then oFSen.mEnt = vEnt -- Store attachment entity to manage local sampling
-    oFSen.mHit.Ent = {SKIP={[vEnt]=true},ONLY={}} -- Store the base entity for ignore
+    oFSen.mHit.Ent = {SKIP={},ONLY={}} -- No entities are store for ONLY or SKIP by default
   else oFSen.mHit.Ent, oFSen.mEnt = {SKIP={},ONLY={}}, nil end -- Make sure the entity is cleared
   -- Local tracer position the trace starts from
   oFSen.mPos, oFSen.mDir = Vector(), Vector()
@@ -481,16 +484,21 @@ end
 
 __e2setcost(3)
 e2function fsensor fsensor:setAttachEntity(entity eE)
-  if(not this) then return nil end; local vE = this.mEnt
+  if(not this) then return nil end
   if(not isEntity(eE)) then return this end
-  if(isEntity(vE)) then remValue(this.HEnt.SKIP, vE, true) end
-  this.mEnt = eE; this.HEnt.SKIP[eE] = true; return this
+  this.mEnt = eE; return this
+end
+
+__e2setcost(3)
+e2function fsensor fsensor:remAttachEntity()
+  if(not this) then return nil end
+  remValue(this, "mEnt", true); return this
 end
 
 __e2setcost(3)
 e2function number fsensor:isIgnoreWorld()
   if(not this) then return 0 end
-  return (this.mTrI.ignoreworld or 0)
+  return (this.mTrI.ignoreworld and 1 or 0)
 end
 
 __e2setcost(3)
@@ -627,25 +635,30 @@ end
 __e2setcost(3)
 e2function vector fsensor:getStart()
   if(not this) then return {0,0,0} end
-  local oTr = oFSen.mTrI.start
-  return {oTr.x, oTr.y, oTr.z}
+  local vT = oFSen.mTrI.start
+  return {vT.x, vT.y, vT.z}
 end
 
 __e2setcost(3)
 e2function vector fsensor:getStop()
   if(not this) then return {0,0,0} end
-  local oTr = oFSen.mTrI.endpos
-  return {oTr.x, oTr.y, oTr.z}
+  local vT = oFSen.mTrI.endpos
+  return {vT.x, vT.y, vT.z}
 end
 
 __e2setcost(12)
 e2function fsensor fsensor:smpLocal()
-  return trcLocal(this, nil)
+  return trcLocal(this, nil, nil, nil)
 end
 
 __e2setcost(12)
 e2function fsensor fsensor:smpLocal(entity vE)
-  return trcLocal(this, vE)
+  return trcLocal(this,  vE, nil, nil)
+end
+
+__e2setcost(12)
+e2function fsensor fsensor:smpLocal(vector vP, angle vA)
+  return trcLocal(this, nil,  vP,  vA)
 end
 
 __e2setcost(8)
