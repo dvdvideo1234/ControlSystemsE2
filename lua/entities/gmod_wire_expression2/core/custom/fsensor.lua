@@ -247,7 +247,6 @@ local function newItem(oSelf, vEnt, vPos, vDir, nLen)
   if(isHere(vPos)) then oFSen.mPos.x, oFSen.mPos.y, oFSen.mPos.z = vPos[1], vPos[2], vPos[3] end
   -- Local tracer direction to read the data of
   if(isHere(vDir)) then oFSen.mDir.x, oFSen.mDir.y, oFSen.mDir.z = vDir[1], vDir[2], vDir[3] end
-  if(oFSen.mDir:Length() == 0) then logStatus("Direction zero ["..tostring(oFSen.mDir).."] !") end
   -- How long the flash sensor length will be. Must be positive
   oFSen.mLen = (tonumber(nLen) or 0)
   oFSen.mLen = (oFSen.mLen == 0 and getNorm(vDir) or oFSen.mLen)
