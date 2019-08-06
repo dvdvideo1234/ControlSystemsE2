@@ -69,8 +69,8 @@ local function getNorm(tV)
     nN = nN + nV^2 end; return mathSqrt(nN)
 end
 
-local function remValue(tSrc, aKey, bCall)
-  tSrc[aKey] = nil; if(bCall) then collectgarbage() end
+local function remValue(tSrc, aKey)
+  tSrc[aKey] = nil; return tSrc
 end
 
 local function logError(sMsg, ...)
@@ -239,8 +239,8 @@ local function newItem(oSelf, vEnt, vPos, vDir, nLen)
     return logError("Count reached ["..tostring(nMax).."]", nil) end
   local oFSen, tSen = {}, gtStoreOOP[eChip]; oFSen.mSet, oFSen.mHit = eChip, {Size=0, ID={}};
   if(not tSen) then gtStoreOOP[eChip] = {}; tSen = gtStoreOOP[eChip] end
-  if(isEntity(vEnt)) then oFSen.mEnt = vEnt -- Store attachment entity to manage local sampling
-    oFSen.mHit.Ent = {SKIP={},ONLY={}} -- No entities are store for ONLY or SKIP by default
+  if(isEntity(vEnt)) then -- No entities are store for ONLY or SKIP by default
+    oFSen.mHit.Ent, oFSen.mEnt = {SKIP={},ONLY={}}, vEnt
   else oFSen.mHit.Ent, oFSen.mEnt = {SKIP={},ONLY={}}, nil end -- Make sure the entity is cleared
   -- Local tracer position the trace starts from
   oFSen.mPos, oFSen.mDir = Vector(), Vector()
@@ -396,7 +396,7 @@ __e2setcost(3)
 e2function fsensor fsensor:remEntityHitSkip(entity vE)
   if(not this) then return nil end
   if(not isEntity(vE)) then return nil end
-  remValue(this.mHit.Ent.SKIP, vE, true); return this
+  remValue(this.mHit.Ent.SKIP, vE); return this
 end
 
 __e2setcost(3)
@@ -410,7 +410,7 @@ __e2setcost(3)
 e2function fsensor fsensor:remEntityHitOnly(entity vE)
   if(not this) then return nil end
   if(not isEntity(vE)) then return nil end
-  remValue(this.mHit.Ent.ONLY, vE, true); return this
+  remValue(this.mHit.Ent.ONLY, vE); return this
 end
 
 --[[ **************************** FILTER **************************** ]]
@@ -491,7 +491,7 @@ end
 __e2setcost(3)
 e2function fsensor fsensor:remAttachEntity()
   if(not this) then return nil end
-  remValue(this, "mEnt", true); return this
+  remValue(this, "mEnt"); return this
 end
 
 __e2setcost(3)

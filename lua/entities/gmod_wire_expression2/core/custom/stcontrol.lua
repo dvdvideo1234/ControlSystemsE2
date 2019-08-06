@@ -56,8 +56,8 @@ local function getValue(kV,eV,pV)
   return (kV*getSign(eV)*mathAbs(eV)^pV)
 end
 
-local function remValue(tSrc, aKey, bCall)
-  tSrc[aKey] = nil; if(bCall) then collectgarbage() end
+local function remValue(tSrc, aKey)
+  tSrc[aKey] = nil; return tSrc
 end
 
 local function logError(sMsg, ...)
@@ -591,19 +591,19 @@ end
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindup()
   if(not this) then return nil end
-  remValue(this, "mSatD"); remValue(this, "mSatU", true); return this
+  remValue(this, "mSatD"); remValue(this, "mSatU"); return this
 end
 
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindupD()
   if(not this) then return nil end
-  remValue(this, "mSatD", true); return this
+  remValue(this, "mSatD"); return this
 end
 
 __e2setcost(3)
 e2function stcontrol stcontrol:remWindupU()
   if(not this) then return nil end
-  remValue(this, "mSatU", true); return this
+  remValue(this, "mSatU"); return this
 end
 
 __e2setcost(3)
@@ -824,7 +824,7 @@ end
 __e2setcost(3)
 e2function stcontrol stcontrol:remTimeSample()
   if(not this) then return 0 end
-  remValue(this, "mnTo", true); return this
+  remValue(this, "mnTo"); return this
 end
 
 __e2setcost(3)
