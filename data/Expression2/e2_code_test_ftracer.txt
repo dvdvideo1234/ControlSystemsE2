@@ -1,7 +1,7 @@
 @name Test
 @inputs 
 @outputs [H1 H2 H3]:array C
-@persist [A B]:fsensor E:entity
+@persist [A B]:ftracer E:entity
 @trigger 
 @model models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl
 runOnTick(1)
@@ -9,8 +9,8 @@ runOnTick(1)
 if(first() || dupefinished())
 {
     E = entity()
-    A = E:setFSensor(vec(0,0,0),vec(0,0,1), -25):addHitOnly("GetClass","prop_physics")
-    B = E:setFSensor(vec(0,0,0),vec(0,0,1), 25):addHitOnly("GetClass","prop_physics")
+    A = E:setFTracer(vec(0,0,0),vec(0,0,1), -25):addHitOnly("GetClass","prop_physics")
+    B = E:setFTracer(vec(0,0,0),vec(0,0,1), 25):addHitOnly("GetClass","prop_physics")
 }
 
 A:smpLocal()
