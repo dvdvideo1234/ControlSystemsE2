@@ -1084,11 +1084,11 @@ e2function stcontrol stcontrol:dumpItem(string sN)
 end
 
 __e2setcost(15)
-e2function stcontrol stcontrol:dumpItem(number nT, number nN)
+e2function stcontrol stcontrol:dumpItem(string nT, number nN)
   return dumpItem(this, self, nN, nT)
 end
 
 __e2setcost(15)
-e2function stcontrol stcontrol:dumpItem(number nT, string sN)
+e2function stcontrol stcontrol:dumpItem(string nT, string sN)
   return dumpItem(this, self, sN, nT)
 end
