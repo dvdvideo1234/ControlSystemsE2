@@ -81,7 +81,7 @@ local function logStatus(sMsg, oSelf, nPos, ...)
     local nPos = tonumber(nPos) or gtPrintName[gsDefPrint]
     local oPly, oEnt = oSelf.player, oSelf.entity
     local sNam, sEID = oPly:Nick() , tostring(oEnt:EntIndex())
-    local sTxt = "E2{"..sEID.."}{"..sNam.."}:ftracer:"..tostring(sMsg)
+    local sTxt = "E2{"..sEID.."}{"..sNam.."}:stcontrol:"..tostring(sMsg)
     oPly:PrintMessage(nPos, sTxt:sub(1, 200))
   end; return ...
 end
@@ -97,7 +97,7 @@ local function remControllersEntity(eChip)
 end
 
 local function setGains(oStCon, oSelf, vP, vI, vD, bZ)
-  if(not oStCon) then return logStatus("Object missing", oSelf, nil) end
+  if(not oStCon) then return logStatus("Object missing", oSelf, nil, nil) end
   local nP, nI = (tonumber(vP) or 0), (tonumber(vI) or 0)
   local nD, sT = (tonumber(vD) or 0), "" -- Store control type
   if(vP and ((nP > 0) or (bZ and nP >= 0))) then oStCon.mkP = nP end
@@ -133,14 +133,14 @@ local function getCode(nN)
 end
 
 local function setPower(oStCon, oSelf, vP, vI, vD)
-  if(not oStCon) then return logStatus("Object missing", oSelf, nil) end
+  if(not oStCon) then return logStatus("Object missing", oSelf, nil, nil) end
   oStCon.mpP, oStCon.mpI, oStCon.mpD = (tonumber(vP) or 1), (tonumber(vI) or 1), (tonumber(vD) or 1)
   oStCon.mType[1] = gsFormatPID:format(getCode(oStCon.mpP), getCode(oStCon.mpI), getCode(oStCon.mpD))
   return oStCon
 end
 
 local function resState(oStCon, oSelf)
-  if(not oStCon) then return logStatus("Object missing", oSelf, nil) end
+  if(not oStCon) then return logStatus("Object missing", oSelf, nil, nil) end
   oStCon.mErrO, oStCon.mErrN = 0, 0 -- Reset the error
   oStCon.mvCon, oStCon.meInt = 0, true -- Control value and integral enabled
   oStCon.mvP, oStCon.mvI, oStCon.mvD = 0, 0, 0 -- Term values
@@ -158,28 +158,28 @@ local function dumpItem(oStCon, oSelf, sNam, sPos)
   local sP = tostring(sPos or gsDefPrint)
   local nP = gtPrintName[sP] -- Print location setup
   if(not isHere(nP)) then return oStCon end
-  logStatus("["..tostring(sNam).."]["..tostring(oStCon.mnTo or gtMissName[2]).."]["..getType(oStCon).."]["..tostring(oStCon.mTimN).."] Data:", oSelf)
-  logStatus(" Human: ["..tostring(oStCon.mbMan).."] {V="..tostring(oStCon.mvMan)..", B="..tostring(oStCon.mBias).."}", oSelf)
-  logStatus(" Gains: {P="..tostring(oStCon.mkP)..", I="..tostring(oStCon.mkI)..", D="..tostring(oStCon.mkD).."}", oSelf)
-  logStatus(" Power: {P="..tostring(oStCon.mpP)..", I="..tostring(oStCon.mpI)..", D="..tostring(oStCon.mpD).."}", oSelf)
-  logStatus(" Limit: {D="..tostring(oStCon.mSatD)..", U="..tostring(oStCon.mSatU).."}", oSelf)
-  logStatus(" Error: {O="..tostring(oStCon.mErrO)..", N="..tostring(oStCon.mErrN).."}", oSelf)
-  logStatus(" Value: ["..tostring(oStCon.mvCon).."] {P="..tostring(oStCon.mvP)..", I="..tostring(oStCon.mvI)..", D=" ..tostring(oStCon.mvD).."}", oSelf)
-  logStatus(" Flags: ["..tostring(oStCon.mbOn).."] {C="..tostring(oStCon.mbCmb)..", R=" ..tostring(oStCon.mbInv)..", I="..tostring(oStCon.meInt).."}", oSelf)
+  logStatus("["..tostring(sNam).."]["..tostring(oStCon.mnTo or gtMissName[2]).."]["..getType(oStCon).."]["..tostring(oStCon.mTimN).."] Data:", oSelf, nP)
+  logStatus(" Human: ["..tostring(oStCon.mbMan).."] {V="..tostring(oStCon.mvMan)..", B="..tostring(oStCon.mBias).."}", oSelf, nP)
+  logStatus(" Gains: {P="..tostring(oStCon.mkP)..", I="..tostring(oStCon.mkI)..", D="..tostring(oStCon.mkD).."}", oSelf, nP)
+  logStatus(" Power: {P="..tostring(oStCon.mpP)..", I="..tostring(oStCon.mpI)..", D="..tostring(oStCon.mpD).."}", oSelf, nP)
+  logStatus(" Limit: {D="..tostring(oStCon.mSatD)..", U="..tostring(oStCon.mSatU).."}", oSelf, nP)
+  logStatus(" Error: {O="..tostring(oStCon.mErrO)..", N="..tostring(oStCon.mErrN).."}", oSelf, nP)
+  logStatus(" Value: ["..tostring(oStCon.mvCon).."] {P="..tostring(oStCon.mvP)..", I="..tostring(oStCon.mvI)..", D=" ..tostring(oStCon.mvD).."}", oSelf, nP)
+  logStatus(" Flags: ["..tostring(oStCon.mbOn).."] {C="..tostring(oStCon.mbCmb)..", R=" ..tostring(oStCon.mbInv)..", I="..tostring(oStCon.meInt).."}", oSelf, nP)
   return oStCon -- The dump method
 end
 
 local function newItem(oSelf, nTo)
   local eChip = oSelf.entity; if(not isEntity(eChip)) then
-    return logStatus("Entity invalid", oSelf, nil) end
+    return logStatus("Entity invalid", oSelf, nil, nil) end
   local nTot, nMax = getControllersCount(), varMaxTotal:GetInt()
   if(nMax <= 0) then remControllersEntity(eChip)
-    return logStatus("Limit invalid ["..tostring(nMax).."]", oSelf, nil) end
+    return logStatus("Limit invalid ["..tostring(nMax).."]", oSelf, nil, nil) end
   if(nTot >= nMax) then remControllersEntity(eChip)
-    return logStatus("Count reached ["..tostring(nMax).."]", oSelf, nil) end
+    return logStatus("Count reached ["..tostring(nMax).."]", oSelf, nil, nil) end
   local oStCon, sM = {}, gtMissName[3]; oStCon.mnTo = tonumber(nTo) -- Place to store the object
   if(oStCon.mnTo and oStCon.mnTo <= 0) then remControllersEntity(eChip)
-    return logStatus("Delta mismatch ["..tostring(oStCon.mnTo).."]", oSelf, nil) end
+    return logStatus("Delta mismatch ["..tostring(oStCon.mnTo).."]", oSelf, nil, nil) end
   local sT, tCon = gsFormatPID:format(sM, sM, sM), gtStoreOOP[eChip]
   if(not tCon) then gtStoreOOP[eChip] = {}; tCon = gtStoreOOP[eChip] end
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
@@ -203,26 +203,26 @@ end
  * tunning option for a PID controller.
 ]]
 local function tuneZieglerNichols(oStCon, oSelf, uK, uT, uL, sM, bP)
-  if(not oStCon) then return logStatus("Object missing", oSelf, nil) end
+  if(not oStCon) then return logStatus("Object missing", oSelf, nil, nil) end
   local sM, sT = tostring(sM or "classic"), oStCon.mType[2]
   local uK, uT = (tonumber(uK) or 0), (tonumber(uT) or 0)
   if(bP) then if(uT <= 0 or uL <= 0) then return oStCon end
-    if(sT == "P") then return setGains(oStCon, (uT/uL), 0, 0, true)
-    elseif(sT == "PI") then return setGains(oStCon, (0.9*(uT/uL)), (0.3/uL), 0, true)
-    elseif(sT == "PD") then return setGains(oStCon, (1.1*(uT/uL)), 0, (0.8/uL), true)
-    elseif(sT == "PID") then return setGains(oStCon, (1.2*(uT/uL)), 1/(2*uL), 2/uL)
-    else return logStatus("Type mismatch <"..sT..">", oSelf, oStCon) end
+    if(sT == "P") then return setGains(oStCon, oSelf, (uT/uL), 0, 0, true)
+    elseif(sT == "PI") then return setGains(oStCon, oSelf, (0.9*(uT/uL)), (0.3/uL), 0, true)
+    elseif(sT == "PD") then return setGains(oStCon, oSelf, (1.1*(uT/uL)), 0, (0.8/uL), true)
+    elseif(sT == "PID") then return setGains(oStCon, oSelf, (1.2*(uT/uL)), 1/(2*uL), 2/uL)
+    else return logStatus("Type mismatch <"..sT..">", oSelf, nil, oStCon) end
   else if(uK <= 0 or uT <= 0) then return oStCon end
-    if(sT == "P") then return setGains(oStCon, (0.5*uK), 0, 0, true)
-    elseif(sT == "PI") then return setGains(oStCon, (0.45*uK), (1.2/uT), 0, true)
-    elseif(sT == "PD") then return setGains(oStCon, (0.80*uK), 0, (uT/8), true)
+    if(sT == "P") then return setGains(oStCon, oSelf, (0.5*uK), 0, 0, true)
+    elseif(sT == "PI") then return setGains(oStCon, oSelf, (0.45*uK), (1.2/uT), 0, true)
+    elseif(sT == "PD") then return setGains(oStCon, oSelf, (0.80*uK), 0, (uT/8), true)
     elseif(sT == "PID") then
-      if(sM == "classic") then return setGains(oStCon, 0.60 * uK, 2.0 / uT, uT / 8.0)
-      elseif(sM == "pessen" ) then return setGains(oStCon, (7*uK)/10, 5/(2*uT), (3*uT)/20)
-      elseif(sM == "sovers") then return setGains(oStCon, (uK/3), (2/uT), (uT/3))
-      elseif(sM == "novers") then return setGains(oStCon, (uK/5), (2/uT), (uT/3))
-      else return logStatus("Method mismatch <"..sM..">", oSelf, oStCon) end
-    else return logStatus("Type mismatch <"..sT..">", oSelf, oStCon) end
+      if(sM == "classic") then return setGains(oStCon, oSelf, 0.60 * uK, 2.0 / uT, uT / 8.0)
+      elseif(sM == "pessen" ) then return setGains(oStCon, oSelf, (7*uK)/10, 5/(2*uT), (3*uT)/20)
+      elseif(sM == "sovers") then return setGains(oStCon, oSelf, (uK/3), (2/uT), (uT/3))
+      elseif(sM == "novers") then return setGains(oStCon, oSelf, (uK/5), (2/uT), (uT/3))
+      else return logStatus("Method mismatch <"..sM..">", oSelf, nil, oStCon) end
+    else return logStatus("Type mismatch <"..sT..">", oSelf, nil, oStCon) end
   end; return oStCon
 end
 
@@ -231,7 +231,7 @@ end
  * Three parameter model: Gain nK, Time nT, Delay nL
 ]]
 local function tuneChoenCoon(oStCon, oSelf, nK, nT, nL)
-  if(not oStCon) then return logStatus("Object missing", oSelf, nil) end
+  if(not oStCon) then return logStatus("Object missing", oSelf, nil, nil) end
   if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
   local sT, mT = oStCon.mType[2], (nL/nT)
   if(sT == "P") then
@@ -250,7 +250,7 @@ local function tuneChoenCoon(oStCon, oSelf, nK, nT, nL)
     local kI = 1/(nL*((32+6*mT)/(13+8*mT)))
     local kD = nL*(4/(11+2*mT))
     return setGains(oStCon, oSelf, kP, kI, kD)
-  else return logStatus("Type mismatch <"..sT..">", oSelf, oStCon) end
+  else return logStatus("Type mismatch <"..sT..">", oSelf, nil, oStCon) end
 end
 
 --[[
@@ -261,7 +261,7 @@ end
  * else the tuning is done for set point tracking
 ]]
 local function tuneChienHronesReswick(oStCon, oSelf, nK, nT, nL, bM, bR)
-  if(not oStCon) then return logStatus("Object missing", oSelf, nil) end
+  if(not oStCon) then return logStatus("Object missing", oSelf, nil, nil) end
   if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
   local mA, sT = (nK * nL / nT), oStCon.mType[2]
   if(bR) then -- Load rejection
@@ -270,13 +270,13 @@ local function tuneChienHronesReswick(oStCon, oSelf, nK, nT, nL, bM, bR)
       elseif(sT == "PI") then return setGains(oStCon, oSelf, (0.7/mA), (1/(2.3*nT)), 0, true)
       elseif(sT == "PD") then return setGains(oStCon, oSelf, (0.82/mA), 0, (0.5*uL), true)
       elseif(sT == "PID") then return setGains(oStCon, oSelf, (1.2/mA), 1/(2*nT), 0.42*uL)
-      else return logStatus("Type mismatch <"..sT..">", oSelf, oStCon) end
+      else return logStatus("Type mismatch <"..sT..">", oSelf, nil, oStCon) end
     else
       if(sT == "P") then return setGains(oStCon, oSelf, (0.3/mA), 0, 0, true)
       elseif(sT == "PI") then return setGains(oStCon, oSelf, (0.6/mA), (1/(4*nT)), 0, true)
       elseif(sT == "PD") then return setGains(oStCon, oSelf, (0.75/mA), 0, (0.5*uL), true)
       elseif(sT == "PID") then return setGains(oStCon, oSelf, (0.95/mA), (1/(2.4*nT)), (0.42*uL))
-      else return logStatus("Type mismatch <"..sT..">", oSelf, oStCon) end
+      else return logStatus("Type mismatch <"..sT..">", oSelf, nil, oStCon) end
     end
   else -- Set point tracking
     if(bM) then -- Overshoot 20%
@@ -284,13 +284,13 @@ local function tuneChienHronesReswick(oStCon, oSelf, nK, nT, nL, bM, bR)
       elseif(sT == "PI") then return setGains(oStCon, oSelf, (0.6/mA), 1/nT, 0, true)
       elseif(sT == "PD") then return setGains(oStCon, oSelf, (0.7/mA), 0, (0.45*uL), true)
       elseif(sT == "PID") then return setGains(oStCon, oSelf, (0.95/mA), 1/(1.4*nT), 0.47*uL)
-      else return logStatus("Type mismatch <"..sT..">", oSelf, oStCon) end
+      else return logStatus("Type mismatch <"..sT..">", oSelf, nil, oStCon) end
     else
       if(sT == "P") then return setGains(oStCon, oSelf, (0.3/mA), 0, 0, true)
       elseif(sT == "PI") then return setGains(oStCon, oSelf, (0.35/mA), (1/(1.2*nT)), 0, true)
       elseif(sT == "PD") then return setGains(oStCon, oSelf, (0.45/mA), 0, (0.45*uL), true)
       elseif(sT == "PID") then return setGains(oStCon, oSelf, (0.6/mA), (1/nT), (0.5*uL))
-      else return logStatus("Type mismatch <"..sT..">", oSelf, oStCon) end
+      else return logStatus("Type mismatch <"..sT..">", oSelf, nil, oStCon) end
     end
   end
 end
@@ -299,8 +299,8 @@ end
  * Tunes a controller using the Astrom-Hagglund method
  * Three parameter model: Gain nK, Time nT, Delay nL
 ]]
-local function tuneAstromHagglund(oStCon, nK, nT, nL)
-  if(not oStCon) then return logStatus("Object missing", oSelf, nil) end
+local function tuneAstromHagglund(oStCon, oSelf, nK, nT, nL)
+  if(not oStCon) then return logStatus("Object missing", oSelf, nil, nil) end
   if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
   local kP = (1/nK)*(0.2+0.45*(nT/nL))
   local kI = 1/(((0.4*nL+0.8*nT)/(nL+0.1*nT))*nL)
@@ -326,14 +326,14 @@ local tIE ={
     PID = {1.357, -0.947, 0.842, 0.738, 0.381, 0.995}
   }
 }
-local function tuneIE(oStCon, nK, nT, nL, sM)
-  if(not oStCon) then return logStatus("Object missing", oSelf, nil) end
+local function tuneIE(oStCon, oSelf, nK, nT, nL, sM)
+  if(not oStCon) then return logStatus("Object missing", oSelf, nil, nil) end
   if(nK <= 0 or nT <= 0 or nL <= 0) then return oStCon end
   local sM, sT, tT = tostring(sM or "ISE"), oStCon.mType[2], nil
   tT = tIE[sM]; if(not isHere(tT)) then
-    return logStatus("Mode mismatch <"..sM..">", oSelf, oStCon) end
+    return logStatus("Mode mismatch <"..sM..">", oSelf, nil, oStCon) end
   tT = tT[sT]; if(not isHere(tT)) then
-    return logStatus("Type mismatch <"..sT..">", oSelf, oStCon) end
+    return logStatus("Type mismatch <"..sT..">", oSelf, nil, oStCon) end
   local A, B, C, D, E, F = unpack(tT)
   local kP = (A*(nL/nT)^B)/nK
   local kI = 1/((nT/C)*(nL/nT)^D)

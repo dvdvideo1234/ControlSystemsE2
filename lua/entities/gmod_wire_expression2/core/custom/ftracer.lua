@@ -248,22 +248,22 @@ local function dumpItem(oFTrc, oSelf, sNam, sPos)
   local sP = tostring(sPos or gsDefPrint)
   local nP = gtPrintName[sP] -- Print location setup
   if(not isHere(nP)) then return oFTrc end
-  logStatus("["..tostring(sNam or gsNotAvStr).."] Data:", self)
-  logStatus(" Len: "..tostring(oFTrc.mLen or gsNotAvStr), self)
-  logStatus(" Pos: "..tostring(oFTrc.mPos or gsNotAvStr), self)
-  logStatus(" Dir: "..tostring(oFTrc.mDir or gsNotAvStr), self)
-  logStatus(" Ent: "..tostring(oFTrc.mEnt or gsNotAvStr), self)
-  logStatus(" E2 : "..tostring(oFTrc.mSet or gsNotAvStr), self)
+  logStatus("["..tostring(sNam or gsNotAvStr).."] Data:", oSelf, nP)
+  logStatus(" Len: "..tostring(oFTrc.mLen or gsNotAvStr), oSelf, nP)
+  logStatus(" Pos: "..tostring(oFTrc.mPos or gsNotAvStr), oSelf, nP)
+  logStatus(" Dir: "..tostring(oFTrc.mDir or gsNotAvStr), oSelf, nP)
+  logStatus(" Ent: "..tostring(oFTrc.mEnt or gsNotAvStr), oSelf, nP)
+  logStatus(" E2 : "..tostring(oFTrc.mSet or gsNotAvStr), oSelf, nP)
   local nSz = oFTrc.mHit.Size; if(nSz <= 0) then return oFTrc end
   for iH = 1, nSz do
     local tHit = oFTrc.mHit[iH]
     local tS, tO = tHit.SKIP, tHit.ONLY
-    logStatus(" Hit: ["..tostring(iH).."]"..tostring(tHit.CALL or gsNotAvStr), self)
+    logStatus(" Hit: ["..tostring(iH).."]"..tostring(tHit.CALL or gsNotAvStr), oSelf, nP)
     if(tS) then for kS, vS in pairs(tS) do
-        logStatus(" Hit [SKIP] : {"..tostring(kS).."} > {"..tostring(vS).."}", self)
+        logStatus(" Hit [SKIP] : {"..tostring(kS).."} > {"..tostring(vS).."}", oSelf, nP)
     end end
     if(tO) then for kO, vO in pairs(tO) do
-        logStatus(" Hit [ONLY] : {"..tostring(kO).."} > {"..tostring(vO).."}", self)
+        logStatus(" Hit [ONLY] : {"..tostring(kO).."} > {"..tostring(vO).."}", oSelf, nP)
     end end
   end; return oFTrc -- The dump method
 end
