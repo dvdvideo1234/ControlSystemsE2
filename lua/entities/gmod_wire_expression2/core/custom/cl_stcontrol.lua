@@ -132,5 +132,5 @@ DSC["tuneProcCHRSP("..xtp..":nnn)"] = act[8].." the "..xnm.." using the Chien-Hr
 DSC["tuneProcZN("..xtp..":nnn)"] = act[8].." the "..xnm.." using the Ziegler-Nichols plant process method (ZN)"
 DSC["dumpItem("..xtp..":n)"] = act[7].." "..xnm.." to the chat area by number identifier"
 DSC["dumpItem("..xtp..":s)"] = act[7].." "..xnm.." to the chat area by string identifier"
-DSC["dumpItem("..xtp..":nn)"] = act[7].." "..xnm.." by number identifier in the specified area by first argument"
-DSC["dumpItem("..xtp..":ns)"] = act[7].." "..xnm.." by string identifier in the specified area by first argument"
+DSC["dumpItem("..xtp..":sn)"] = act[7].." "..xnm.." by number identifier in the specified area by first argument"
+DSC["dumpItem("..xtp..":ss)"] = act[7].." "..xnm.." by string identifier in the specified area by first argument"
