@@ -4,7 +4,7 @@
 
 local DSC = E2Helper.Descriptions
 local xnm, xtp = "flash tracer", "xft"
-local act = {"Returns","Adds","Removes","Updates","Samples"}
+local act = {"Returns","Adds","Removes","Updates","Samples","Dumps"}
 local par = {"attachment entity", "origin position", "direction vector", "length distance"}
 DSC["noFTracer()"] = act[1].." invalid "..xnm.." object"
 DSC["setFTracer(e:vvn)"] = act[1].." "..xnm.." local to the entity by "..par[2]..", "..par[3]..", "..par[4]
@@ -93,3 +93,7 @@ DSC["isAllSolid("..xtp..":)"] = act[1].." the "..xnm.." trace-result `AllSolid` 
 DSC["getFractionLeftSolid("..xtp..":)"] = act[1].." the "..xnm.." trace-result `FractionLeftSolid` in the interval [0-1] number"
 DSC["getFractionLeftSolidLength("..xtp..":)"] = act[1].." the "..xnm.." trace-result `FractionLeftSolid` multiplied by its "..par[4].." number"
 DSC["getEntity("..xtp..":)"] = act[1].." the "..xnm.." trace-result `Entity` entity"
+DSC["dumpItem("..xtp..":n)"] = act[6].." the "..xnm.." to the chat area by number identifier"
+DSC["dumpItem("..xtp..":s)"] = act[6].." the "..xnm.." to the chat area by string identifier"
+DSC["dumpItem("..xtp..":sn)"] = act[6].." the "..xnm.." by number identifier in the specified area by first argument"
+DSC["dumpItem("..xtp..":ss)"] = act[6].." the "..xnm.." by string identifier in the specified area by first argument"
