@@ -1,7 +1,7 @@
 @name Test
 @inputs 
 @outputs [H1 H2 H3]:array C
-@persist [A B]:ftracer E:entity
+@persist [A B]:ftrace E:entity
 @trigger 
 @model models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl
 runOnTick(1)

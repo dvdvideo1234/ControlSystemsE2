@@ -1,7 +1,7 @@
 @name adaptive fiter OOP
 @inputs But RF
 @outputs PV CN TT EE RR
-@persist T:fsensor E:entity C:stcontrol V2:vector2
+@persist T:ftrace E:entity C:stcontrol V2:vector2
 @trigger 
 @model models/props_phx/construct/metal_wire1x1x1.mdl
 
