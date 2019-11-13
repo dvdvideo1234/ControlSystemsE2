@@ -11,14 +11,14 @@ if(first() || dupefinished())
 {
     V2 = vec2(1.1,0.5)   
     E = entity()
-    T = E:setFSensor(E:massCenterL(),vec(0,0,1), -225)
+    T = E:setFTrace(E:massCenterL(),vec(0,0,1), -225)
     T:addHitSkip("GetModel","models/props_trainstation/trainstation_clock001.mdl")
     T:addHitOnly("GetClass","prop_physics")
-    C = newStControl():setGain(1700, 6800, 7800):setWindup(-9000,9000):setPowerPI(V2):dumpConsole("TEST")
+    C = newStControl():setGain(1700, 6800, 7800):setWindup(-9000,9000):setPowerPI(V2):dumpItem("TEST")
     E:setMass(250)
 }
 
-PV = T:smpLocal():getFractionLength()
+PV = T:smpLocal():getFractionLen()
 CN = C:setIsActive(But):setState(RF, PV):getControl()
 
 

@@ -1,7 +1,3 @@
---[[ ******************************************************************************
- My custom flash tracer type ( Based on wire rangers )
-****************************************************************************** ]]--
-
 E2Helper.Descriptions["addEntHitOnly(xft:e)"] = "Adds the entity to the flash trace internal only hit list"
 E2Helper.Descriptions["addEntHitSkip(xft:e)"] = "Adds the entity to the flash trace internal ignore hit list"
 E2Helper.Descriptions["addHitOnly(xft:sn)"] = "Adds the option to the flash trace internal hit only list"
