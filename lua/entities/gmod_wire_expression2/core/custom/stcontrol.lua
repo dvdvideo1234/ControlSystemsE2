@@ -2,17 +2,33 @@
  My custom state LQ-PID control type handling process variables
 ****************************************************************************** ]]--
 
+local HUD_PRINTTALK    = HUD_PRINTTALK
+local HUD_PRINTNOTIFY  = HUD_PRINTNOTIFY
+local HUD_PRINTCENTER  = HUD_PRINTCENTER
+local HUD_PRINTCONSOLE = HUD_PRINTCONSOLE
+
+local FCVAR_NOTIFY        = FCVAR_NOTIFY
+local FCVAR_ARCHIVE       = FCVAR_ARCHIVE
+local FCVAR_REPLICATED    = FCVAR_REPLICATED
+local FCVAR_PRINTABLEONLY = FCVAR_PRINTABLEONLY
+
+local type         = type
 local pairs        = pairs
+local error        = error
+local istable      = istable
 local tostring     = tostring
 local tonumber     = tonumber
-local CreateConVar = CreateConVar
-local bitBor       = bit.bor
-local mathAbs      = math.abs
-local mathModf     = math.modf
-local tableConcat  = table.concat
-local tableInsert  = table.insert
-local tableRemove  = table.remove
 local getTime      = CurTime -- Using this as time benchmarking supporting game pause
+local CreateConVar = CreateConVar
+local bitBor       = bit and bit.bor
+local mathAbs      = math and math.abs
+local mathModf     = math and math.modf
+local tableConcat  = table and table.concat
+local tableInsert  = table and table.insert
+local tableRemove  = table and table.remove
+local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
+local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
+
 
 -- Register the type up here before the extension registration so that the state control still works
 registerType("stcontrol", "xsc", nil,
@@ -79,8 +95,8 @@ local gsVarName = "" -- This stores current variable name
 local gsCbcHash = "_call" -- This keeps suffix realted to the file
 
 local gsVarName = varDefPrint:GetName()
-cvars.RemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvars.AddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   local sK = tostring(vNew):upper(); if(gtPrintName[sK]) then gsDefPrint = sK end
 end, gsVarName..gsCbcHash)
 
