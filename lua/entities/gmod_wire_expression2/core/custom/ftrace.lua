@@ -2,20 +2,6 @@
  My custom flash tracer tracer type ( Based on wire rangers )
 ****************************************************************************** ]]--
 
-local MASK_SOLID = MASK_SOLID
-
-local HUD_PRINTTALK    = HUD_PRINTTALK
-local HUD_PRINTNOTIFY  = HUD_PRINTNOTIFY
-local HUD_PRINTCENTER  = HUD_PRINTCENTER
-local HUD_PRINTCONSOLE = HUD_PRINTCONSOLE
-
-local FCVAR_NOTIFY        = FCVAR_NOTIFY
-local FCVAR_ARCHIVE       = FCVAR_ARCHIVE
-local FCVAR_REPLICATED    = FCVAR_REPLICATED
-local FCVAR_PRINTABLEONLY = FCVAR_PRINTABLEONLY
-
-local COLLISION_GROUP_NONE = COLLISION_GROUP_NONE
-
 local next          = next
 local type          = type
 local pairs         = pairs
@@ -37,8 +23,6 @@ local tableRemove   = table and table.remove
 local tableInsert   = table and table.insert
 local utilTraceLine = util and util.TraceLine
 local utilGetSurfacePropName = util and util.GetSurfacePropName
-local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
-local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
 
 -- Register the type up here before the extension registration so that the ftrace still works
 registerType("ftrace", "xft", nil,
@@ -62,6 +46,8 @@ local gnIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 -- Server tells the client what value to use
 local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY, FCVAR_REPLICATED)
 
+local gsVarName   = "" -- This stores current variable name
+local gsCbcHash   = "_call" -- This keeps suffix realted to the file
 local gvTransform = Vector() -- Temporary vector for transformation calculation
 local gaTransform = Angle() -- Temporary angle for transformation calculation
 local gsZeroStr   = "" -- Empty string to use instead of creating one everywhere
@@ -130,24 +116,22 @@ local function convArrayKeys(tA)
 end
 
 --[[ **************************** CALLBACKS **************************** ]]
-local gsVarName = "" -- This stores current variable name
-local gsCbcHash = "_call" -- This keeps suffix realted to the file
 
 gsVarName = varMethSkip:GetName()
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+cvars.RemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvars.AddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   gtMethList.SKIP = convArrayKeys(("/"):Explode(tostring(vNew or gsZeroStr)))
 end, gsVarName..gsCbcHash)
 
 gsVarName = varMethOnly:GetName()
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+cvars.RemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvars.AddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   gtMethList.ONLY = convArrayKeys(("/"):Explode(tostring(vNew or gsZeroStr)))
 end, gsVarName..gsCbcHash)
 
 gsVarName = varDefPrint:GetName()
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+cvars.RemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvars.AddChangeCallback(gsVarName, function(sVar, vOld, vNew)
   local sK = tostring(vNew):upper(); if(gtPrintName[sK]) then gsDefPrint = sK end
 end, gsVarName..gsCbcHash)
 
