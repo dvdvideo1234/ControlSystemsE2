@@ -39,8 +39,6 @@ local gnIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONL
 -- Server tells the client what value to use
 local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY, FCVAR_REPLICATED)
 
-local gsVarName   = "" -- This stores current variable name
-local gsCbcHash   = "_call" -- This keeps suffix realted to the file
 local gtComponent = {"P", "I", "D"} -- The names of each term. This is used for indexing and checking
 local gsFormatPID = "(%s%s%s)" -- The general type format for the control power setup
 local gtMissName  = {"Xx", "X", "Nr"} -- This is a place holder for missing/default type
@@ -81,11 +79,10 @@ end
 
 --[[ **************************** CALLBACKS **************************** ]]
 
-gsVarName = varDefPrint:GetName()
-cvars.RemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvars.AddChangeCallback(gsVarName, function(sVar, vOld, vNew)
+cvars.RemoveChangeCallback(varDefPrint:GetName(), varDefPrint:GetName().."_call")
+cvars.AddChangeCallback(varDefPrint:GetName(), function(sVar, vOld, vNew)
   local sK = tostring(vNew):upper(); if(gtPrintName[sK]) then gsDefPrint = sK end
-end, gsVarName..gsCbcHash)
+end, varDefPrint:GetName().."_call")
 
 --[[ **************************** WRAPPERS **************************** ]]
 
