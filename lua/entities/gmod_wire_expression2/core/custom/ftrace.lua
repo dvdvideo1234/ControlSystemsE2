@@ -779,9 +779,23 @@ e2function vector ftrace:getPosWorld(vector vP, angle vA)
 end
 
 __e2setcost(3)
+e2function ftrace ftrace:setPos(array aO)
+  if(not this) then return nil end
+  this.mPos.x, this.mPos.y, this.mPos.z = aO[1], aO[2], aO[3]
+  return this
+end
+
+__e2setcost(3)
 e2function ftrace ftrace:setPos(vector vO)
   if(not this) then return nil end
   this.mPos.x, this.mPos.y, this.mPos.z = vO[1], vO[2], vO[3]
+  return this
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:setPos(number X, number Y, number Z)
+  if(not this) then return nil end
+  this.mPos.x, this.mPos.y, this.mPos.z = X, Y, Z
   return this
 end
 
@@ -822,9 +836,25 @@ e2function vector ftrace:getDirWorld(angle vA)
 end
 
 __e2setcost(3)
+e2function ftrace ftrace:setDir(array aD)
+  if(not this) then return nil end
+  this.mDir.x, this.mDir.y, this.mDir.z = aD[1], aD[2], aD[3]
+  this.mDir:Normalize(); this.mDir:Mul(this.mLen)
+  return this
+end
+
+__e2setcost(3)
 e2function ftrace ftrace:setDir(vector vD)
   if(not this) then return nil end
   this.mDir.x, this.mDir.y, this.mDir.z = vD[1], vD[2], vD[3]
+  this.mDir:Normalize(); this.mDir:Mul(this.mLen)
+  return this
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:setDir(number X, number Y, number Z)
+  if(not this) then return nil end
+  this.mDir.x, this.mDir.y, this.mDir.z = X, Y, Z
   this.mDir:Normalize(); this.mDir:Mul(this.mLen)
   return this
 end
