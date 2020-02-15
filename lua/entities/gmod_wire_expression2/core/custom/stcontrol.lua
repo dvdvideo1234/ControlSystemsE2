@@ -2,14 +2,6 @@
  My custom state LQ-PID control type handling process variables
 ****************************************************************************** ]]--
 
-local type         = type
-local pairs        = pairs
-local error        = error
-local istable      = istable
-local tostring     = tostring
-local tonumber     = tonumber
-local getTime      = CurTime -- Using this as time benchmarking supporting game pause
-local CreateConVar = CreateConVar
 local bitBor       = bit and bit.bor
 local mathAbs      = math and math.abs
 local mathModf     = math and math.modf
@@ -134,7 +126,7 @@ local function resState(oStCon, oSelf)
   oStCon.mErrO, oStCon.mErrN = 0, 0 -- Reset the error
   oStCon.mvCon, oStCon.meInt, oStCon.meDif = 0, true, true -- Control value and integral enabled
   oStCon.mvP, oStCon.mvI, oStCon.mvD = 0, 0, 0 -- Term values
-  oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Update clock
+  oStCon.mTimN = CurTime(); oStCon.mTimO = oStCon.mTimN; -- Update clock
   return oStCon
 end
 
@@ -185,7 +177,7 @@ local function newItem(oSelf, nTo)
   if(oStCon.mnTo and oStCon.mnTo <= 0) then
     return logStatus("Delta mismatch ["..tostring(oStCon.mnTo).."]", oSelf, nil, nil) end
   local sType = gsFormatPID:format(sM, sM, sM) -- Error state values
-  oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
+  oStCon.mTimN = CurTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
   oStCon.mErrO, oStCon.mErrN, oStCon.mType = 0, 0, {sType, gtMissName[2]:rep(3)}
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt, oStCon.meDif = 0, 0, true, true -- Control value and integral enabled
   oStCon.mBias, oStCon.mSatD, oStCon.mSatU = 0, nil, nil -- Saturation limits and settings
@@ -207,7 +199,7 @@ end
 local function conProcess(oStCon, oSelf, nRef, nOut)
   if(oStCon.mbOn) then
     if(oStCon.mbMan) then oStCon.mvCon = (oStCon.mvMan + oStCon.mBias); return oStCon end
-    oStCon.mTimO = oStCon.mTimN; oStCon.mTimN = getTime()
+    oStCon.mTimO = oStCon.mTimN; oStCon.mTimN = CurTime()
     oStCon.mErrO = oStCon.mErrN; oStCon.mErrN = (oStCon.mbInv and (nOut-nRef) or (nRef-nOut))
     local timDt = (oStCon.mnTo and oStCon.mnTo or (oStCon.mTimN - oStCon.mTimO))
     if(oStCon.mkP > 0) then -- Does not get affected by the time and just multiplies
@@ -225,7 +217,7 @@ local function conProcess(oStCon, oSelf, nRef, nOut)
       oStCon.mvCon, oStCon.meInt = oStCon.mSatU, false -- Integral is disabled
     else oStCon.meInt = true end -- Saturation disables the integrator
     oStCon.mvCon = (oStCon.mvCon + oStCon.mBias) -- Apply the saturated signal bias
-    oStCon.mTimB = (getTime() - oStCon.mTimN) -- Benchmark the process
+    oStCon.mTimB = (CurTime() - oStCon.mTimN) -- Benchmark the process
   else return resState(oStCon, oSelf) end; return oStCon
 end
 

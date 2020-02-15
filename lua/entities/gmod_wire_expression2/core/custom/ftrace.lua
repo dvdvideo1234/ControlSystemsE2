@@ -2,18 +2,6 @@
  My custom flash tracer tracer type ( Based on wire rangers )
 ****************************************************************************** ]]--
 
-local next          = next
-local type          = type
-local pairs         = pairs
-local error         = error
-local Angle         = Angle
-local Vector        = Vector
-local istable       = istable
-local tostring      = tostring
-local tonumber      = tonumber
-local CreateConVar  = CreateConVar
-local LocalToWorld  = LocalToWorld
-local WorldToLocal  = WorldToLocal
 local bitBor        = bit and bit.bor
 local mathAbs       = math and math.abs
 local mathSqrt      = math and math.sqrt
