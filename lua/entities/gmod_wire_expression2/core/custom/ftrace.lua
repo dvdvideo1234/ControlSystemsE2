@@ -52,8 +52,6 @@ local gsZeroStr   = "" -- Empty string to use instead of creating one everywhere
 local gsFormHit   = " Hit: [%d]{%s} Entity" -- This stores the hit parameters dump format
 local gsFormDump  = "  [%s] : {%s} > {%s}" -- The format used for dumping SKIP/ONLY interals
 local gsNotAvStr  = "N/A" -- What to print when something is not available
-local gaZeroAng   = Angle() -- Dummy zero angle for transformations
-local gvZeroVec   = Vector() -- Dummy zero vector for transformations
 local gnMaxBeam   = 50000 -- The tracer maximum length just about one cube map
 local gtEmptyVar  = {["#empty"]=true}; gtEmptyVar[gsZeroStr] = true -- Variable being set to empty string
 local gsVarPrefx  = "wire_expression2_ftrace" -- This is used for variable prefix
@@ -162,8 +160,8 @@ local function convOrgUCS(oFTrc, sF, vP, vA)
   if(not gtConvEnab[sF or gsZeroStr]) then return {0,0,0} end
   local oO, oE = oFTrc.mPos, (vE or oFTrc.mEnt)
   if(not isValid(oE)) then return {oO[1], oO[2], oO[3]} end
-  local oV, vN, aN = Vector(oO[1], oO[2], oO[3])
-  vN, aN = gtConvEnab[sF](oV, gaZeroAng, vP, vA); oV:Set(vN)
+  local oV, oA = Vector(oO[1], oO[2], oO[3]), Angle()
+  local vN, aN = gtConvEnab[sF](oV, oA, vP, vA); oV:Set(vN)
   return {oV[1], oV[2], oV[3]}
 end
 
