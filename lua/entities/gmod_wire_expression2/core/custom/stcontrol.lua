@@ -2,13 +2,6 @@
  My custom state LQ-PID control type handling process variables
 ****************************************************************************** ]]--
 
-local bitBor       = bit and bit.bor
-local mathAbs      = math and math.abs
-local mathModf     = math and math.modf
-local tableConcat  = table and table.concat
-local tableInsert  = table and table.insert
-local tableRemove  = table and table.remove
-
 -- Register the type up here before the extension registration so that the state control still works
 registerType("stcontrol", "xsc", nil,
   nil,
@@ -24,12 +17,15 @@ registerType("stcontrol", "xsc", nil,
 
 --[[ **************************** CONFIGURATION **************************** ]]
 
-E2Lib.RegisterExtension("stcontrol", true, "Lets E2 chips have dedicated state control objects")
+E2Lib.RegisterExtension("stcontrol", true,
+  "Lets E2 chips have dedicated state control objects.",
+  "Creates a dedicated object oriented class that is designed to control internal in-game dynamic processes."
+)
 
 -- Client and server have independent value
-local gnIndependentUsed = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY)
+local gnIndependentUsed = bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY)
 -- Server tells the client what value to use
-local gnServerControled = bitBor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY, FCVAR_REPLICATED)
+local gnServerControled = bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY, FCVAR_REPLICATED)
 
 local gtComponent = {"P", "I", "D"} -- The names of each term. This is used for indexing and checking
 local gsFormatPID = "(%s%s%s)" -- The general type format for the control power setup
@@ -56,7 +52,7 @@ local function getSign(nV)
 end
 
 local function getValue(kV,eV,pV)
-  return (kV*getSign(eV)*mathAbs(eV)^pV)
+  return (kV*getSign(eV)*math.abs(eV)^pV)
 end
 
 local function logStatus(sMsg, oSelf, nPos, ...)
@@ -96,7 +92,7 @@ local function setGains(oStCon, oSelf, vP, vI, vD, bZ)
 end
 
 local function getCode(nN)
-  local nW, nF = mathModf(nN, 1)
+  local nW, nF = math.modf(nN, 1)
   if(nN == 1) then return gtMissName[3] end -- [Natural conventional][y=k*x]
   if(nN ==-1) then return "Rr" end -- [Reciprocal relation][y=1/k*x]
   if(nN == 0) then return "Sr" end -- [Sign function relay term][y=k*sign(x)]
@@ -133,7 +129,7 @@ end
 local function getType(oStCon)
   if(not oStCon) then local mP, mT = gtMissName[1], gtMissName[2]
     return (gsFormatPID:format(mP,mP,mP).."-"..mT:rep(3))
-  end; return tableConcat(oStCon.mType, "-")
+  end; return table.concat(oStCon.mType, "-")
 end
 
 local function dumpItem(oStCon, oSelf, sNam, sPos)

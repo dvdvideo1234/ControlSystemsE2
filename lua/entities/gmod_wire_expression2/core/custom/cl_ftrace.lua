@@ -131,7 +131,3 @@ E2Helper.Descriptions["rayAim(xft:v)"] = "Aims the flash trace ray at a given po
 E2Helper.Descriptions["rayAmend(xft:v)"] = "Amends the flash trace ray direction using a vector"
 E2Helper.Descriptions["rayAmend(xft:vn)"] = "Amends the flash trace ray direction using vector and magnitude"
 E2Helper.Descriptions["rayAmend(xft:nnn)"] = "Amends the flash trace ray direction using three numbers"
-
-
-
-
