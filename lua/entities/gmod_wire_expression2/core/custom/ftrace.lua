@@ -39,9 +39,9 @@ local gsVarPrefx  = "wire_expression2_ftrace" -- This is used for variable prefi
 local gtBoolToNum = {[true]=1,[false]=0} -- This is used to convert between GLua boolean and wire boolean
 local gtMethList  = {} -- Place holder for blacklist and convar prefix
 local gtConvEnab  = {["LocalToWorld"] = LocalToWorld, ["WorldToLocal"] = WorldToLocal} -- Coordinate conversion list
-local varMethSkip = CreateConVar(gsVarPrefx.."_skip", gsZeroStr, gnServerControled, "E2 FTrace entity black listed methods")
-local varMethOnly = CreateConVar(gsVarPrefx.."_only", gsZeroStr, gnServerControled, "E2 FTrace entity white listed methods")
-local varEnStatus = CreateConVar(gsVarPrefx.."_enst",  0, gnIndependentUsed, "Enables status output messages")
+local varMethSkip = CreateConVar(gsVarPrefx.."_skip", gsZeroStr, gnServerControled, "FTrace entity black listed methods")
+local varMethOnly = CreateConVar(gsVarPrefx.."_only", gsZeroStr, gnServerControled, "FTrace entity white listed methods")
+local varEnStatus = CreateConVar(gsVarPrefx.."_enst",  0, gnIndependentUsed, "FTrace status output messages")
 local varDefPrint = CreateConVar(gsVarPrefx.."_dprn", "TALK", gnServerControled, "FTrace default status output")
 local gsFormLogs  = "E2{%s}{%s}:ftrace: %s" -- Contains the logs format of the addon
 local gsDefPrint  = varDefPrint:GetString() -- Default print location
