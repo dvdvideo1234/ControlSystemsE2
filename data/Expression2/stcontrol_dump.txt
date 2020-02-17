@@ -1,8 +1,31 @@
-[TEST][X][(GpFpNr)-PID][2056.212621572] Data:
- Human: [false] {V=0, B=0}
- Gains: {P=1700, I=3400, D=7800}
- Power: {P=1.1, I=0.5, D=1}
- Limit: {D=-9000, U=9000}
- Error: {O=0, N=0}
- Value: [0] {P=0, I=0, D=0}
- Flags: [false] {C=false, R=false, I=true}
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol: Controller [TEST][X][(GsFsNr)-PID][802.84497070313]:
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Manual mode enabled: [false]
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:   Value: 0
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    Bias: 0
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Gains for terms:
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       P: 1700
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       I: 3400
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       D: 7800
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Power for terms:
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       P: 1.1
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       I: 0.5
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       D: 1
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Control state value: [0]
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       P: 0
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       I: 0
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       D: 0
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Saturation limits:
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:     Max: 9000
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:     Min: -9000
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Time memory state:
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:     New: 802.84497070313
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    Past: 802.84497070313
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Error memory state:
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:     New: 0
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    Past: 0
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Control enable flag: [false]
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    BCmb: false
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    BInv: false
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    EInt: true
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    EDif: true
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    EZcx: false

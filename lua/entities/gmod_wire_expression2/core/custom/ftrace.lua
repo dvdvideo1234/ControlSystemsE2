@@ -43,7 +43,7 @@ local varMethSkip = CreateConVar(gsVarPrefx.."_skip", gsZeroStr, gnServerControl
 local varMethOnly = CreateConVar(gsVarPrefx.."_only", gsZeroStr, gnServerControled, "FTrace entity white listed methods")
 local varEnStatus = CreateConVar(gsVarPrefx.."_enst",  0, gnIndependentUsed, "FTrace status output messages")
 local varDefPrint = CreateConVar(gsVarPrefx.."_dprn", "TALK", gnServerControled, "FTrace default status output")
-local gsFormLogs  = "E2{%s}{%s}:ftrace: %s" -- Contains the logs format of the addon
+local gsFormLogs  = "E2{%s}{%d}:ftrace: %s" -- Contains the logs format of the addon
 local gsDefPrint  = varDefPrint:GetString() -- Default print location
 local gtPrintName = {} -- Contains the print location specification
       gtPrintName["NOTIFY" ] = HUD_PRINTNOTIFY
@@ -76,8 +76,8 @@ local function logStatus(sMsg, oChip, nPos, ...)
   if(varEnStatus:GetBool()) then
     local nPos = (tonumber(nPos) or gtPrintName[gsDefPrint])
     local oPly, oEnt = oChip.player, oChip.entity
-    local sNam, sEID = oPly:Nick() , tostring(oEnt:EntIndex())
-    local sTxt = gsFormLogs:format(sNam, sEID, tostring(sMsg))
+    local sNam, nEID = oPly:Nick() , oEnt:EntIndex()
+    local sTxt = gsFormLogs:format(sNam, nEID, tostring(sMsg))
     oPly:PrintMessage(nPos, sTxt:sub(1, 200))
   end; return ...
 end
@@ -182,8 +182,7 @@ local function getHitStatus(oF, vK)
 end
 
 local function newHitFilter(oFTrc, sM)
-  if(not oFTrc) then return 0 end -- Check for available method
-  local oChip = oFTrc.mChip -- Obtain E2 chip description
+  if(not oFTrc) then return 0 end; local oChip = oFTrc.mChip
   if(sM:sub(1,3) ~= "Get" and sM:sub(1,2) ~= "Is" and sM ~= gsZeroStr) then
     return logStatus("Method <"..sM.."> disabled", oChip, nil, 0) end
   local tHit = oFTrc.mHit; if(tHit.ID[sM]) then -- Check for available method
@@ -249,7 +248,8 @@ local function trcWorld(oFTrc, eE, vP, vA)
   if(vP) then eP:SetUnpacked(vP[1], vP[2], vP[3]) end
   if(vA) then eA:SetUnpacked(vA[1], vA[2], vA[3]) end
   local trS, trE = oFTrc.mTrI.start, oFTrc.mTrI.endpos
-  trS:Set(eP); trE:Set(eA:Forward()); trE:Add(trS)
+  trS:Set(eP); trE:Set(eA:Forward())
+  trE:Mul(oFTrc.mLen); trE:Add(trS)
   -- http://wiki.garrysmod.com/page/util/TraceLine
   util.TraceLine(oFTrc.mTrI); return oFTrc
 end
@@ -787,9 +787,9 @@ e2function ftrace ftrace:setPos(vector vO)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:setPos(number X, number Y, number Z)
+e2function ftrace ftrace:setPos(number nX, number nY, number nZ)
   if(not this) then return nil end
-  this.mPos:SetUnpacked(X, Y, Z)
+  this.mPos:SetUnpacked(nX, nY, nZ)
   return this
 end
 
@@ -846,9 +846,9 @@ e2function ftrace ftrace:setDir(vector vD)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:setDir(number X, number Y, number Z)
+e2function ftrace ftrace:setDir(number nX, number nY, number nZ)
   if(not this) then return nil end
-  this.mDir:SetUnpacked(X, Y, Z)
+  this.mDir:SetUnpacked(nX, nY, nZ)
   this.mDir:Normalize(); this.mDir:Mul(this.mLen)
   return this
 end

@@ -34,7 +34,7 @@ local gsVarPrefx  = "wire_expression2_stcontrol" -- This is used for variable pr
 local varEnStatus = CreateConVar(gsVarPrefx.."_enst",  0, gnIndependentUsed, "StControl status output messages")
 local varDefPrint = CreateConVar(gsVarPrefx.."_dprn", "TALK", gnServerControled, "StControl default status output")
 local gsDefPrint  = varDefPrint:GetString() -- Default print location
-local gsFormLogs  = "E2{%s}{%s}:stcontrol: %s" -- Contains the logs format of the addon
+local gsFormLogs  = "E2{%s}{%d}:stcontrol: %s" -- Contains the logs format of the addon
 local gtPrintName = {} -- Contains the print location specification
       gtPrintName["NOTIFY" ] = HUD_PRINTNOTIFY
       gtPrintName["CONSOLE"] = HUD_PRINTCONSOLE
@@ -59,8 +59,8 @@ local function logStatus(sMsg, oChip, nPos, ...)
   if(varEnStatus:GetBool()) then
     local nPos = (tonumber(nPos) or gtPrintName[gsDefPrint])
     local oPly, oEnt = oChip.player, oChip.entity
-    local sNam, sEID = oPly:Nick() , tostring(oEnt:EntIndex())
-    local sTxt = gsFormLogs:format(sNam, sEID, tostring(sMsg))
+    local sNam, nEID = oPly:Nick() , oEnt:EntIndex()
+    local sTxt = gsFormLogs:format(sNam, nEID, tostring(sMsg))
     oPly:PrintMessage(nPos, sTxt:sub(1, 200))
   end; return ...
 end
@@ -121,7 +121,7 @@ local function resState(oStCon)
   if(not oStCon) then return nil end
   oStCon.mErrO, oStCon.mErrN = 0, 0 -- Reset the error
   oStCon.mvCon, oStCon.meInt, oStCon.meDif = 0, true, true -- Control value and integral enabled
-  oStCon.mvP, oStCon.mvI, oStCon.mvD, oStCon.meZcx = 0, 0, 0, true -- Term values
+  oStCon.mvP, oStCon.mvI, oStCon.mvD, oStCon.meZcx = 0, 0, 0, false -- Term values
   oStCon.mTimN = CurTime(); oStCon.mTimO = oStCon.mTimN; -- Update clock
   return oStCon
 end
@@ -153,10 +153,10 @@ local function dumpItem(oStCon, sNam, sPos)
   logStatus("    Max: "..tostring(oStCon.mSatU), oChip, nP)
   logStatus("    Min: "..tostring(oStCon.mSatD), oChip, nP)
   logStatus(" Time memory state:", oChip, nP)
-  logStatus("    New: "..tostring(oStCon.mTimN), oChip, nP)
+  logStatus("    Now: "..tostring(oStCon.mTimN), oChip, nP)
   logStatus("   Past: "..tostring(oStCon.mTimO), oChip, nP)
   logStatus(" Error memory state:", oChip, nP)
-  logStatus("    New: "..tostring(oStCon.mErrN), oChip, nP)
+  logStatus("    Now: "..tostring(oStCon.mErrN), oChip, nP)
   logStatus("   Past: "..tostring(oStCon.mErrO), oChip, nP)
   logStatus(" Control enable flag: ["..tostring(oStCon.mbOn).."]", oChip, nP)
   logStatus("   BCmb: "..tostring(oStCon.mbCmb), oChip, nP)
@@ -198,8 +198,8 @@ local function conProcess(oStCon, nRef, nOut)
       oStCon.mvCon = (oStCon.mvMan + oStCon.mBias); return oStCon
     end -- If manual mode is enabled add bias and go to the output
     local errNw = (oStCon.mbInv and (nOut - nRef) or (nRef - nOut))
-    oStCon.mTimO = oStCon.mTimN; oStCon.mTimN = CurTime()
     oStCon.mErrO = oStCon.mErrN; oStCon.mErrN = errNw
+    oStCon.mTimO = oStCon.mTimN; oStCon.mTimN = CurTime()
     local timDt = (oStCon.mnTo and oStCon.mnTo or (oStCon.mTimN - oStCon.mTimO))
     -- Does not get affected by the time and just multiplies. Not approximated
     if(oStCon.mkP > 0) then
@@ -207,15 +207,15 @@ local function conProcess(oStCon, nRef, nOut)
     end
     -- Direct approximation with error sampling average for calculating the integral term
     if((oStCon.mkI > 0) and oStCon.meInt and (timDt > 0)) then
-      if(this.meZcx and (errNw == 0 or getSign(errNw) ~= errNw(oStCon.mErrO))) then
+      if(oStCon.meZcx and (errNw == 0 or getSign(errNw) ~= getSign(oStCon.mErrO))) then
         oStCon.mvI = 0 -- Reset on zero for avoid having the same value in the other direction
-      else -- If the flag is not set and an error deleta is present calculate the integral area
+      else -- If the flag is not set and an error delta is present calculate the integral area
         local arInt = (errNw + oStCon.mErrO) * timDt -- Integral error area
         oStCon.mvI = getValue(oStCon.mkI * timDt, arInt, oStCon.mpI) + oStCon.mvI
       end
     end
     -- Direct approximation for calculating the derivative term
-    if((oStCon.mkD > 0) and (errNw ~= oStCon.mErrO) and oStCon.meDif and (timDt > 0)) then -- D-Term
+    if((oStCon.mkD > 0) and (errNw ~= oStCon.mErrO) and oStCon.meDif and (timDt > 0)) then
       local arDif = (errNw - oStCon.mErrO) / timDt -- Error derivative slope dE/dT
       oStCon.mvD = getValue(oStCon.mkD * timDt, arDif, oStCon.mpD)
     else -- Reset the derivative as there is no slope to be used
@@ -249,7 +249,7 @@ end
 ]]
 local function tuneZieglerNichols(oStCon, uK, uT, uL, sM, bP)
   if(not oStCon) then return nil end; local oChip = oStCon.mChip
-  local sM, sT = tostring(sM or "classic"), oStCon.mType[2]
+  local sM, sT = tostring(sM or "classic"):lower(), oStCon.mType[2]
   local uK, uT = (tonumber(uK) or 0), (tonumber(uT) or 0)
   if(bP) then if(uT <= 0 or uL <= 0) then return oStCon end
     if(sT == "P") then return setGains(oStCon, (uT/uL), 0, 0, true)

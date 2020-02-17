@@ -1,6 +1,6 @@
 @name Test
 @inputs 
-@outputs [H1 H2 H3]:array C
+@outputs [H1 H2 H3 H4]:array C
 @persist [A B]:ftrace E:entity
 @trigger 
 @model models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl
@@ -10,7 +10,12 @@ if(first() || dupefinished())
 {
     E = entity()
     A = E:setFTrace(vec(0,0,0),vec(0,0,1), -25):addHitOnly("GetClass","prop_physics"):addHitSkip("IsWorld", 1)
-    B = E:setFTrace(vec(0,0,0),vec(0,0,1), 25):addHitOnly("GetClass","prop_physics"):dumpItem("lol"):addHitSkip("GetModel", 1)
+    B = E:setFTrace(vec(0,0,0),vec(0,0,1), 25):addHitOnly("GetClass","prop_physics")
+        B:addHitSkip("GetModel", 1):addEntHitSkip(E):dumpItem("lol")
+    
+    holoCreate(1,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(1,vec(255,0,0))        
+    holoCreate(2,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(2,vec(0,255,0))
+    holoCreate(3,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(3,vec(0,0,255))
 }
 
 A:smpLocal()
@@ -38,5 +43,20 @@ H3[4, number] = A:isAllSolid()
 H3[5, number] = A:getFractionLS()
 H3[6, number] = A:getFractionLenLS()
 H3[7, entity] = A:getBase()
+H3[8, entity] = A:getEntity()
+H4[1, vector] = A:getDir()
+H4[2, vector] = A:getPos()
+H4[3, number] = A:getMask()
+H4[4, vector] = A:getStart()
+H4[5, vector] = A:getStop()
+H4[6, number] = A:getLen()
+H4[7, number] = A:getCollideGroup()
 
 C = B:setPos(E:pos()):setDir(E:up()):smpWorld():getFractionLen()
+
+holoPos(1, B:getStart())
+holoAng(1, E:angles())
+holoPos(2, B:getStop())
+holoAng(2, E:angles())
+holoPos(3, B:getHitPos())
+holoAng(3, E:angles())

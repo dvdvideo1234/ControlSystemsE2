@@ -1,0 +1,12 @@
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace: [lol] Data:
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Len: 25
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Pos: 0.000000 0.000000 0.000000
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Dir: 0.000000 0.000000 25.000000
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Ent: Entity [68][gmod_wire_expression2]
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  E2 : Entity [68][gmod_wire_expression2]
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Hit: [0]{Entity} Entity
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:   [SKIP] : {Entity [68][gmod_wire_expression2]} > {true}
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Hit: [1]{string} Entity:GetClass
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:   [ONLY] : {prop_physics} > {true}
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Hit: [2]{number} Entity:GetModel
+E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:   [SKIP] : {1} > {true}
