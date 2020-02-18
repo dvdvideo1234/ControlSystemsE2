@@ -1,5 +1,5 @@
-E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol: Controller [TEST][X][(GsFsNr)-PID][802.84497070313]:
-E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Manual mode enabled: [false]
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol: Controller [TEST][X][(GsFsNr)-PID]:
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Manual mode enabled: false
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:   Value: 0
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    Bias: 0
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Gains for terms:
@@ -10,7 +10,7 @@ E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Power for terms:
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       P: 1.1
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       I: 0.5
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       D: 1
-E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Control state value: [0]
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Control state value: 0
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       P: 0
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       I: 0
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:       D: 0
@@ -23,7 +23,7 @@ E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    Past: 802.84497070313
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Error memory state:
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:     New: 0
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    Past: 0
-E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Control enable flag: [false]
+E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:  Control enable flag: false
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    BCmb: false
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    BInv: false
 E2{[Sk$Bh]Trick or treat KID!}{92}:stcontrol:    EInt: true
