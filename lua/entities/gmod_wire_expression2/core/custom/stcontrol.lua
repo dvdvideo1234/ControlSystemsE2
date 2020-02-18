@@ -207,7 +207,7 @@ local function conProcess(oStCon, nRef, nOut)
     end
     -- Direct approximation with error sampling average for calculating the integral term
     if((oStCon.mkI > 0) and oStCon.meInt and (timDt > 0)) then
-      if(oStCon.meZcx and (errNw == 0 or getSign(errNw) ~= getSign(oStCon.mErrO))) then
+      if(oStCon.meZcx and (getSign(errNw) ~= getSign(oStCon.mErrO))) then
         oStCon.mvI = 0 -- Reset on zero for avoid having the same value in the other direction
       else -- If the flag is not set and an error delta is present calculate the integral area
         local arInt = (errNw + oStCon.mErrO) * timDt -- Integral error area
