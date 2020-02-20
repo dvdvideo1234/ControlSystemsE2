@@ -1116,7 +1116,7 @@ e2function stcontrol stcontrol:tuneOverCHRLR(number nK, number nT, number nL)
 end
 
 __e2setcost(7)
-e2function stcontrol stcontrol:tuneAH(number nK, number nT, number nL)
+e2function stcontrol stcontrol:tuneProcAH(number nK, number nT, number nL)
   return tuneAstromHagglund(this, nK, nT, nL)
 end
 
