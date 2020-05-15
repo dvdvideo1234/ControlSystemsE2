@@ -1136,6 +1136,27 @@ e2function entity ftrace:getEntity()
   return (trV and trV or nil)
 end
 
+__e2setcost(3)
+e2function number ftrace:getSurfaceFlags()
+  if(not this) then return 0 end
+  local trV = this.mTrO.SurfaceFlags
+  return (trV and trV or 0)
+end
+
+__e2setcost(3)
+e2function number ftrace:getDisplayFlags()
+  if(not this) then return 0 end
+  local trV = this.mTrO.DispFlags
+  return (trV and trV or 0)
+end
+
+__e2setcost(3)
+e2function number ftrace:getHitContents()
+  if(not this) then return 0 end
+  local trV = this.mTrO.Contents
+  return (trV and trV or 0)
+end
+
 __e2setcost(15)
 e2function ftrace ftrace:dumpItem(number nN)
   return dumpItem(this, nN)
