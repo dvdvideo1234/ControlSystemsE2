@@ -15,7 +15,7 @@ registerType("ftrace", "xft", nil,
   end
 )
 
---[[ **************************** CONFIGURATION **************************** ]]
+--[[ **************************** REGISTER **************************** ]]
 
 E2Lib.RegisterExtension("ftrace", true,
   "Lets E2 chips trace ray attachments and check for hits.",
