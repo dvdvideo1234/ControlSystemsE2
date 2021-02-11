@@ -176,12 +176,15 @@ end
 local function getHitStatus(oF, vK)
   -- Skip current setting on empty data type
   if(not oF.TYPE) then return 1, vNop end
-  local tO, tS = oF.ONLY, oF.SKIP
-  if(tO and next(tO)) then if(tO[vK]) then
-    return 3, vHit else return 2, vSkp end end
-  if(tS and next(tS)) then if(tS[vK]) then
-    return 2, vSkp else return 1, vNop end end
-  return 1, vNop -- Check next setting on empty table
+  if(vK ~= nil) then -- Value used for indexing
+    local tO, tS = oF.ONLY, oF.SKIP -- Localize filters
+    local tO = ((tO and next(tO)) and tO or nil)
+    local bS = ((tS and next(tS)) and tS or nil)
+    if(tO) then -- Check for only whitelisted method values
+      if(tO[vK]) then return 3, vHit else return 2, vSkp end end
+    if(tS) then -- Check the blacklisted method values later
+      if(tS[vK]) then return 2, vSkp else return 1, vNop end end
+  end; return 1, vNop -- Check next setting on empty table
 end
 
 local function newHitFilter(oFTrc, sM)
@@ -216,7 +219,7 @@ local function setHitFilter(oFTrc, sM, sO, vV, bS)
   if(not nID) then nID = newHitFilter(oFTrc, sM) end -- Obtain the current data index
   local tID = tHit[nID]; if(not tID) then -- Check the current data type and prevent the user from messing up
     return logStatus("ID mismatch <"..nID.."@"..sM..">", oChip, nil, oFTrc) end
-  if(not tID.TYPE) then tID.TYPE = type(vV) end
+  if(not tID.TYPE) then tID.TYPE = type(vV) end -- When data type is not yet present fill it up
   if(tID.TYPE ~= sTyp) then -- Check the current data type and prevent the user from messing up
     return logStatus("Type "..sTyp.." mismatch <"..tID.TYPE.."@"..sM..">", oChip, nil, oFTrc) end
   if(not tID[sO]) then tID[sO] = {} end
@@ -225,8 +228,11 @@ local function setHitFilter(oFTrc, sM, sO, vV, bS)
   else tID[sO][vV] = bS end; return oFTrc
 end
 
-local function convHitValue(oEnt, sM) local vV = oEnt[sM](oEnt)
-  if(sM:sub(1,2) == "Is") then vV = gtBoolToNum[vV] end; return vV
+local function convHitValue(oEnt, sM)
+  local vV = oEnt[sM](oEnt) -- Call method
+  if(sM:sub(1,2) == "Is") then -- Check bool
+    vV = gtBoolToNum[vV] -- Convert boolean
+  end; return vV -- Return converted value
 end
 
 local function trcLocal(oFTrc, eB, vP, vA)
@@ -239,7 +245,7 @@ local function trcLocal(oFTrc, eB, vP, vA)
   local trS, trE = oFTrc.mTrI.start, oFTrc.mTrI.endpos
   trS:Set(oFTrc.mPos); trS:Rotate(eA); trS:Add(eP)
   trE:Set(oFTrc.mDir); trE:Rotate(eA); trE:Add(trS)
-  -- http://wiki.garrysmod.com/page/util/TraceLine
+  -- https://wiki.facepunch.com/gmod/util.TraceLine
   util.TraceLine(oFTrc.mTrI); return oFTrc
 end
 
@@ -253,7 +259,7 @@ local function trcWorld(oFTrc, eE, vP, vA)
   local trS, trE = oFTrc.mTrI.start, oFTrc.mTrI.endpos
   trS:Set(eP); trE:Set(eA:Forward())
   trE:Mul(oFTrc.mLen); trE:Add(trS)
-  -- http://wiki.garrysmod.com/page/util/TraceLine
+  -- https://wiki.facepunch.com/gmod/util.TraceLine
   util.TraceLine(oFTrc.mTrI); return oFTrc
 end
 
@@ -308,24 +314,25 @@ local function newItem(oChip, vEnt, vPos, vDir, nLen)
   oFTrc.mDir:Normalize() -- Normalize the direction
   oFTrc.mDir:Mul(oFTrc.mLen) -- Multiply to add in real-time
   oFTrc.mLen = math.abs(oFTrc.mLen) -- Length to absolute
-  -- http://wiki.garrysmod.com/page/Structures/TraceResult
+  -- https://wiki.facepunch.com/gmod/Structures/TraceResult
   oFTrc.mTrO = {} -- Trace output parameters
-  -- http://wiki.garrysmod.com/page/Structures/Trace
+  -- https://wiki.facepunch.com/gmod/Structures/Trace
   oFTrc.mTrI = { -- Trace input parameters
     mask = MASK_SOLID, -- Mask telling the trace what to hit
     start = Vector(), -- The start position of the trace
     output = oFTrc.mTrO, -- Provide output place holder table
     endpos = Vector(), -- The end position of the trace
     filter = function(oEnt) -- This is used for custom filtering
-      if(not isValid(oEnt)) then return end -- Bail out when invalid
+      if(not isValid(oEnt)) then return end -- Exit when when invalid
       local tHit = oFTrc.mHit -- Store reference to the trace hit list
       local nS, vV = getHitStatus(tHit.Ent, oEnt) -- Check the entity
       if(nS > 1) then return vV end -- Entity found or skipped return
       if(tHit.Size > 0) then -- Swipe trough the other lists available
         for IH = 1, tHit.Size do local vHit = tHit[IH] -- Read list conf
-          local nS, vV = getHitStatus(vHit, convHitValue(oEnt, vHit.CALL))
-          if(nS > 1) then return vV end -- Option skipped/selected
-        end -- All options are checked then trace hit normally
+          local vC = convHitValue(oEnt, vHit.CALL) -- Extract entity value
+          local nS, vV = getHitStatus(vHit, vC) -- Check extracted value
+          if(nS > 1) then return vV end -- Option skipped or selected return
+        end -- All options are checked then trace hit normally routine
       end; return true -- Finally we register the trace hit enabled
     end, ignoreworld = false, -- Should the trace ignore world or not
     collisiongroup = COLLISION_GROUP_NONE } -- Collision group control
