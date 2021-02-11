@@ -9,9 +9,8 @@ runOnTick(1)
 if(first() || dupefinished())
 {
     E = entity()
-    A = E:setFTrace(vec(0,0,0),vec(0,0,1), -25):addHitOnly("GetClass","prop_physics"):addHitSkip("IsWorld", 1)
-    B = E:setFTrace(vec(0,0,0),vec(0,0,1), 25):addHitOnly("GetClass","prop_physics")
-        B:addHitSkip("GetModel", 1):addEntHitSkip(E):dumpItem("lol")
+    A = E:setFTrace(vec(0,0,0),vec(0,0,1), 25):addEntHitSkip(E):addHitOnly("GetClass","prop_physics"):dumpItem("A")
+    B = A:getCopy():addHitOnly("GetClass","prop_physics"):addHitSkip("GetModel", 1):addEntHitSkip(E)
     
     holoCreate(1,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(1,vec(255,0,0))        
     holoCreate(2,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(2,vec(0,255,0))
@@ -51,6 +50,8 @@ H4[4, vector] = A:getStart()
 H4[5, vector] = A:getStop()
 H4[6, number] = A:getLen()
 H4[7, number] = A:getCollideGroup()
+H4[8, number] = A:getSurfaceFlags()
+H4[9, number] = A:getDisplaceFlags()
 
 C = B:setPos(E:pos()):setDir(E:up()):smpWorld():getFractionLen()
 

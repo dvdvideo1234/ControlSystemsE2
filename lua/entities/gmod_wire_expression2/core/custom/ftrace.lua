@@ -281,21 +281,29 @@ local function dumpItem(oFTrc, sNam, sPos)
   end; return oFTrc -- The dump method returns a pointer to the current instance
 end
 
+--[[
+ * Creates a new flash tracer
+ * oChip > Reference to expression chip
+ * vEnt  > Tracer relation entity reference for local sampling
+ * vPos  > Tracer position reference in local or word coordinates
+ * vDir  > Tracer direction reference in local or word coordinates
+ * nLen  > Tracer length number in source engine units
+]]
 local function newItem(oChip, vEnt, vPos, vDir, nLen)
   local eChip = oChip.entity; if(not isValid(eChip)) then
     return logStatus("Entity invalid", oChip, nil, nil) end
-  local oFTrc = {}; oFTrc.mChip, oFTrc.mHit = oChip, {Size = 0, ID = {}};
+  local oFTrc, ncDir, ncLen = {}, getNorm(vDir), (tonumber(nLen) or 0)
+  oFTrc.mChip, oFTrc.mHit = oChip, {Size = 0, ID = {}};
   oFTrc.mHit.Ent = {SKIP = {}, ONLY = {}, TYPE = type(eChip)} -- No entities in ONLY or SKIP by default
   if(isValid(vEnt)) then oFTrc.mEnt = vEnt else oFTrc.mEnt = nil end -- Make sure the entity is cleared
-  -- Local tracer position the trace starts from
-  oFTrc.mPos, oFTrc.mDir = Vector(), Vector()
-  if(vPos) then oFTrc.mPos:SetUnpacked(vPos[1], vPos[2], vPos[3]) end
-  -- Local tracer direction to read the data of
-  if(vDir) then oFTrc.mDir:SetUnpacked(vDir[1], vDir[2], vDir[3]) end
+  oFTrc.mPos, oFTrc.mDir = Vector(), Vector(0, 0, 1)
+  if(vPos) then -- Local tracer position the trace starts from
+    oFTrc.mPos:SetUnpacked(vPos[1], vPos[2], vPos[3]) end  
+  if(vDir and ncDir > 0) then -- Local tracer direction to read the data from
+    oFTrc.mDir:SetUnpacked(vDir[1], vDir[2], vDir[3]) end
   -- How long the flash tracer length will be. Must be positive
-  oFTrc.mLen = (tonumber(nLen) or 0)
-  oFTrc.mLen = (oFTrc.mLen == 0 and getNorm(vDir) or oFTrc.mLen)
-  oFTrc.mLen = math.Clamp(oFTrc.mLen,-gnMaxBeam,gnMaxBeam)
+  oFTrc.mLen = (ncLen == 0 and ncDir or ncLen)
+  oFTrc.mLen = math.Clamp(oFTrc.mLen, -gnMaxBeam, gnMaxBeam)
   -- Internal fail safe configurations
   oFTrc.mDir:Normalize() -- Normalize the direction
   oFTrc.mDir:Mul(oFTrc.mLen) -- Multiply to add in real-time
@@ -409,52 +417,52 @@ end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(vector vP, vector vD, number nL)
-  return newItem(self, nil, vP, vD, nL)
+  return newItem(self, this.mEnt, vP, vD, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE, vector vP, vector vD)
-  return newItem(self, eE, vP, vD)
+  return newItem(self, eE, vP, vD, this.mLen)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(vector vP, vector vD)
-  return newItem(self, nil, vP, vD)
+  return newItem(self, this.mEnt, vP, vD, this.mLen)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE, vector vP, number nL)
-  return newItem(self, eE, vP, nil, nL)
+  return newItem(self, eE, vP, this.mDir, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(vector vP, number nL)
-  return newItem(self, nil, vP, nil, nL)
+  return newItem(self, this.mEnt, vP, this.mDir, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE, vector vP)
-  return newItem(self, eE, vP, nil, nil)
+  return newItem(self, eE, vP, this.mDir, this.mLen)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(vector vP)
-  return newItem(self, nil, vP, nil, nil)
+  return newItem(self, this.mEnt, vP, this.mDir, this.mLen)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE, number nL)
-  return newItem(self, this, nil, nil, nL)
+  return newItem(self, eE, this.mPos, this.mDir, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(number nL)
-  return newItem(self, nil, nil, nil, nL)
+  return newItem(self, this.mEnt, this.mPos, this.mDir, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE)
-  return newItem(self, this, nil, nil, nil)
+  return newItem(self, eE, this.mPos, this.mDir, this.mLen)
 end
 
 __e2setcost(20)
@@ -1147,7 +1155,7 @@ e2function number ftrace:getSurfaceFlags()
 end
 
 __e2setcost(3)
-e2function number ftrace:getDisplayFlags()
+e2function number ftrace:getDisplaceFlags()
   if(not this) then return 0 end
   local trV = this.mTrO.DispFlags
   return (trV and trV or 0)
