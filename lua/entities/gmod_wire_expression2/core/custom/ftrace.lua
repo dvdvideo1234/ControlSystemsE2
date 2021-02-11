@@ -298,7 +298,7 @@ local function newItem(oChip, vEnt, vPos, vDir, nLen)
   if(isValid(vEnt)) then oFTrc.mEnt = vEnt else oFTrc.mEnt = nil end -- Make sure the entity is cleared
   oFTrc.mPos, oFTrc.mDir = Vector(), Vector(0, 0, 1)
   if(vPos) then -- Local tracer position the trace starts from
-    oFTrc.mPos:SetUnpacked(vPos[1], vPos[2], vPos[3]) end  
+    oFTrc.mPos:SetUnpacked(vPos[1], vPos[2], vPos[3]) end
   if(vDir and ncDir > 0) then -- Local tracer direction to read the data from
     oFTrc.mDir:SetUnpacked(vDir[1], vDir[2], vDir[3]) end
   -- How long the flash tracer length will be. Must be positive
@@ -316,13 +316,14 @@ local function newItem(oChip, vEnt, vPos, vDir, nLen)
     start = Vector(), -- The start position of the trace
     output = oFTrc.mTrO, -- Provide output place holder table
     endpos = Vector(), -- The end position of the trace
-    filter = function(oEnt) local tHit, nS, vV = oFTrc.mHit
-      if(not isValid(oEnt)) then return end
-      nS, vV = getHitStatus(tHit.Ent, oEnt)
-      if(nS > 1) then return vV end -- Entity found/skipped
-      if(tHit.Size > 0) then
-        for IH = 1, tHit.Size do local sFoo = tHit[IH].CALL
-          nS, vV = getHitStatus(tHit[IH], convHitValue(oEnt, sFoo))
+    filter = function(oEnt) -- This is used for custom filtering
+      if(not isValid(oEnt)) then return end -- Bail out when invalid
+      local tHit = oFTrc.mHit -- Store reference to the trace hit list
+      local nS, vV = getHitStatus(tHit.Ent, oEnt) -- Check the entity
+      if(nS > 1) then return vV end -- Entity found or skipped return
+      if(tHit.Size > 0) then -- Swipe trough the other lists available
+        for IH = 1, tHit.Size do local vHit = tHit[IH] -- Read list conf
+          local nS, vV = getHitStatus(vHit, convHitValue(oEnt, vHit.CALL))
           if(nS > 1) then return vV end -- Option skipped/selected
         end -- All options are checked then trace hit normally
       end; return true -- Finally we register the trace hit enabled
