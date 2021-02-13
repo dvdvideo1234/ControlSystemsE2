@@ -30,7 +30,8 @@ local gnServerControled = bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEON
 local gvTransform = Vector() -- Temporary vector for transformation calculation
 local gaTransform = Angle() -- Temporary angle for transformation calculation
 local gsZeroStr   = "" -- Empty string to use instead of creating one everywhere
-local gsFormHit   = " Hit: [%d]{%s} Entity" -- This stores the hit parameters dump format
+local gsFormFnc   = " FNC: [%d]{%s} Entity" -- This stores the hit parameters dump format
+local gsFormEar   = " EAR: [%d]{%d}" -- This stores the hit parameters dump format
 local gsFormDump  = "  [%s] : {%s} > {%s}" -- The format used for dumping SKIP/ONLY internals
 local gsNotAvStr  = "N/A" -- What to print when something is not available
 local gnMaxBeam   = 50000 -- The tracer maximum length just about one cube map
@@ -38,7 +39,7 @@ local gtEmptyVar  = {["#empty"]=true}; gtEmptyVar[gsZeroStr] = true -- Variable 
 local gsVarPrefx  = "wire_expression2_ftrace" -- This is used for variable prefix
 local gtBoolToNum = {[true]=1,[false]=0} -- This is used to convert between GLua boolean and wire boolean
 local gtMethList  = {} -- Place holder for blacklist and convar prefix
-local gtConvEnab  = {["LocalToWorld"] = LocalToWorld, ["WorldToLocal"] = WorldToLocal} -- Coordinate conversion list
+local gtConvEnab  = {["LW"] = LocalToWorld, ["WL"] = WorldToLocal} -- Coordinate conversion list
 local varMethSkip = CreateConVar(gsVarPrefx.."_skip", gsZeroStr, gnServerControled, "FTrace entity black listed methods")
 local varMethOnly = CreateConVar(gsVarPrefx.."_only", gsZeroStr, gnServerControled, "FTrace entity white listed methods")
 local varEnStatus = CreateConVar(gsVarPrefx.."_enst",  0, gnIndependentUsed, "FTrace status output messages")
@@ -56,25 +57,43 @@ gtPrintName["CENTER" ] = HUD_PRINTCENTER
 
 --[[ **************************** PRIMITIVES **************************** ]]
 
-local function isValid(vE)
-  return (vE and vE:IsValid())
+local function isValid(vE, vT)
+  if(vT) then local sT = tostring(vT or "")
+    if(sT ~= type(vE)) then return false end end
+  return (vE and vE.IsValid and vE:IsValid())
 end
 
 local function formDump(sS, sM, sV)
-  return gsFormDump:format(sS, sM, tostring(sV))
+  return gsFormDump:format(tostring(sS), tostring(sM), tostring(sV))
 end
 
 local function formType(iD, sT)
-  return gsFormHit:format(iD, tostring(sT))
+  return gsFormFnc:format(iD, tostring(sT))
 end
 
 local function getNorm(tV)
   local nN = 0; if(not tV) then return nN end
   if(tonumber(tV)) then return math.abs(tV) end
   for ID = 1, 3 do local nV = tonumber(tV[ID]) or 0
-    nN = nN + nV^2 end; return math.sqrt(nN)
+    nN = nN + nV ^ 2 end; return math.sqrt(nN)
 end
 
+--[[
+ * Picks the table when has values. Otherwise nil
+ * Empty aggument is nil as nothing to be done
+ * tT > The table to checked and picked (table or nil)
+]]
+local function pickTable(tT)
+  if(not tT) then return nil end
+  return ((next(tT) ~= nil) and tT or nil)
+end
+
+--[[
+ * Outputs status messages in various places
+ * sMsg  > Messave as any value type
+ * oChip > Reference to an E2 chip
+ * nPos  > Output location `HUD_%`
+]]
 local function logStatus(sMsg, oChip, nPos, ...)
   if(varEnStatus:GetBool()) then
     local nPos = (tonumber(nPos) or gtPrintName[gsDefPrint])
@@ -85,14 +104,18 @@ local function logStatus(sMsg, oChip, nPos, ...)
   end; return ...
 end
 
+--[[
+ * Converts array of strings to hashed booleans
+ * From T = {"test"} to T = {["test"] = true}
+ * Array values are usually entity methods
+ * tA > The table of number-indexed strings to convert
+]]
 local function convArrayKeys(tA)
   if(not tA) then return nil end
-  if(not next(tA)) then return nil end
-  for ID = 1, #tA do
+  for ID = 1, #tA do -- Convert the table from array to hash bools
     local key = tostring(tA[ID] or ""):gsub("%s+", "")
-    if(not gtEmptyVar[key]) then
-      tA[key] = true end; tA[ID] = nil
-  end; return ((tA and next(tA)) and tA or nil)
+    if(not gtEmptyVar[key]) then tA[key] = true end; tA[ID] = nil
+  end; return pickTable(tA) -- Write empty velue when table is empty
 end
 
 --[[ **************************** CALLBACKS **************************** ]]
@@ -172,52 +195,50 @@ end
  * Returns:
  * 1) The status of the filter (1,2,3)
  * 2) The value to return for the status
-]] local vHit, vSkp, vNop = true, nil, nil
-local function getHitStatus(oF, vK)
+]] local vFnc, vSkp, vNop = true, nil, nil
+local function getFncStatus(oF, vK)
   -- Skip current setting on empty data type
   if(not oF.TYPE) then return 1, vNop end
   if(vK ~= nil) then -- Value used for indexing
-    local tO, tS = oF.ONLY, oF.SKIP -- Localize filters
-    local tO = ((tO and next(tO)) and tO or nil)
-    local bS = ((tS and next(tS)) and tS or nil)
-    if(tO) then -- Check for only whitelisted method values
-      if(tO[vK]) then return 3, vHit else return 2, vSkp end end
-    if(tS) then -- Check the blacklisted method values later
-      if(tS[vK]) then return 2, vSkp else return 1, vNop end end
+    local tO, tS = pickTable(oF.ONLY), pickTable(oF.SKIP)
+    -- Check for only whitelisted method values
+    if(tO) then if(tO[vK]) then return 3, vFnc else return 2, vSkp end end
+    -- Check the blacklisted method values later
+    if(tS) then if(tS[vK]) then return 2, vSkp else return 1, vNop end end
   end; return 1, vNop -- Check next setting on empty table
 end
 
-local function newHitFilter(oFTrc, sM)
+local function newFncFilter(oFTrc, sM)
   if(not oFTrc) then return 0 end; local oChip = oFTrc.mChip
   if(sM:sub(1,3) ~= "Get" and sM:sub(1,2) ~= "Is" and sM ~= gsZeroStr) then
     return logStatus("Method <"..sM.."> disabled", oChip, nil, 0) end
-  local tHit = oFTrc.mHit; if(tHit.ID[sM]) then -- Check for available method
+  local tFnc = oFTrc.mFnc; if(tFnc.ID[sM]) then -- Check for available method
     return logStatus("Method <"..sM.."> exists", oChip, nil, 0) end
-  if(not oChip.entity[sM]) then -- Check for available method
+  if(not oChip.entity[sM]) then -- Check for method availability in entity
     return logStatus("Method <"..sM.."> mismatch", oChip, nil, 0) end
-  local tO = gtMethList.ONLY; if(tO and next(tO) and not tO[sM]) then
+  local tO = pickTable(gtMethList.ONLY); if(tO and not tO[sM]) then
     return logStatus("Method <"..sM.."> use only", oChip, nil, 0) end
-  local tS = gtMethList.SKIP; if(tS and next(tS) and tS[sM]) then
+  local tS = pickTable(gtMethList.SKIP); if(tS and tS[sM]) then
     return logStatus("Method <"..sM.."> use skip", oChip, nil, 0) end
-  tHit.Size = (tHit.Size + 1); tHit[tHit.Size] = {CALL = sM}
-  tHit.ID[sM] = tHit.Size; return (tHit.Size)
+  tFnc.Size = (tFnc.Size + 1); tFnc[tFnc.Size] = {CALL = sM}
+  tFnc.ID[sM] = tFnc.Size; return (tFnc.Size)
 end
 
-local function remHitFilter(oFTrc, sM)
+local function remFncFilter(oFTrc, sM)
   if(not oFTrc) then return nil end
-  local tHit = oFTrc.mHit; if(not tHit) then return oFTrc end
-  local ID = tHit.ID[sM]; if(not ID) then return oFTrc end
-  tHit.Size = (tHit.Size - 1); table.remove(tHit, ID)
-  for IH = 1, tHit.Size do local HM = tHit[IH].CALL
-    tHit.ID[HM] = IH end; tHit.ID[sM] = nil; return oFTrc
+  local tFnc = oFTrc.mFnc; if(not tFnc) then return oFTrc end
+  local ID = tFnc.ID[sM]; if(not ID) then return oFTrc end
+  tFnc.Size = (tFnc.Size - 1); table.remove(tFnc, ID)
+  for IH = 1, tFnc.Size do local HM = tFnc[IH].CALL
+    tFnc.ID[HM] = IH end; tFnc.ID[sM] = nil; return oFTrc
 end
 
-local function setHitFilter(oFTrc, sM, sO, vV, bS)
+local function setFncFilter(oFTrc, sM, sO, vV, bS)
   if(not oFTrc) then return nil end
-  local tHit, sTyp = oFTrc.mHit, type(vV) -- Obtain hit filter location
-  local nID, oChip = tHit.ID[sM], oFTrc.mChip -- Obtain E2 chip description
-  if(not nID) then nID = newHitFilter(oFTrc, sM) end -- Obtain the current data index
-  local tID = tHit[nID]; if(not tID) then -- Check the current data type and prevent the user from messing up
+  local tFnc, sTyp = oFTrc.mFnc, type(vV) -- Obtain hit filter location
+  local nID, oChip = tFnc.ID[sM], oFTrc.mChip -- Obtain E2 chip description
+  if(not nID) then nID = newFncFilter(oFTrc, sM) end -- Obtain the current data index
+  local tID = tFnc[nID]; if(not tID) then -- Check the current data type and prevent messing up
     return logStatus("ID mismatch <"..nID.."@"..sM..">", oChip, nil, oFTrc) end
   if(not tID.TYPE) then tID.TYPE = type(vV) end -- When data type is not yet present fill it up
   if(tID.TYPE ~= sTyp) then -- Check the current data type and prevent the user from messing up
@@ -228,9 +249,9 @@ local function setHitFilter(oFTrc, sM, sO, vV, bS)
   else tID[sO][vV] = bS end; return oFTrc
 end
 
-local function convHitValue(oEnt, sM)
+local function convFncValue(oEnt, sM)
   local vV = oEnt[sM](oEnt) -- Call method
-  if(sM:sub(1,2) == "Is") then -- Check bool
+  if(sM:sub(1,2) == "Is") then -- Check name
     vV = gtBoolToNum[vV] -- Convert boolean
   end; return vV -- Return converted value
 end
@@ -263,7 +284,60 @@ local function trcWorld(oFTrc, eE, vP, vA)
   util.TraceLine(oFTrc.mTrI); return oFTrc
 end
 
-local function dumpItem(oFTrc, sNam, sPos)
+local function updateEarSize(oFTrc)
+  if(not oFTrc) then return nil end
+  local tE, iE = oFTrc.mFlt.Ear, 1
+  while(tE[iE]) do local vE = tE[iE]
+    if(isValid(vE)) then iE = iE + 1
+    else table.remove(tE, iE) end
+  end; oFTrc.mFlt.Size = (iE - 1)
+  return oFTrc
+end
+
+--[[
+ * Moves only the entities from source to destination
+ * oFTrc > Reference to tracer object
+ * tData > Source data table to read from
+ * bTab  > When enabled process as table instead of array
+ * bID   > When enabled the source table contains entity ID
+]]
+local function transEntityList(oFTrc, tData, bTab, bID)
+  if(not oFTrc) then return nil end
+  local tE = oFTrc.mFlt.Ear
+  if(bTab) then local iD = 1
+    while(tData[iD]) do
+      local vE, iE, eE = tData[iD]
+      if(bID) then
+        iE = math.floor(tonumber(vE) or 0)
+        if(iE > 0) then eE = Entity(iE) end
+      else eE = vE end
+      if(isValid(eE, "Entity")) then
+        table.insert(tE, eE)
+      end; iD = iD + 1
+    end
+  else
+    for iD, vE in pairs(tData) do local iE, eE
+      if(bID) then
+        iE = math.floor(tonumber(vE) or 0)
+        if(iE > 0) then eE = Entity(iE) end
+      else eE = vE end
+      if(isValid(eE, "Entity")) then
+        table.insert(tE, eE)
+      end
+    end
+  end; return updateEarSize(oFTrc)
+end
+
+local function getFilterMode(oFTrc)
+  if(not oFTrc) then return "XXX" end -- Unavailable
+  local tF = oFTrc.mTrI.filter -- Filter table reference
+  local fE, fF = oFTrc.mFlt.Ear, oFTrc.mFlt.Fnc -- Options
+  if    (tF == fE) then return "EAR" -- Entity index array
+  elseif(tF == fF) then return "FNC" -- Function routine
+  elseif(isValid(tF)) then return "ENT" end; return "NIL"
+end
+
+local function dumpTracer(oFTrc, sNam, sPos)
   local sP = tostring(sPos or gsDefPrint)
   local nP, oChip = gtPrintName[sP], oFTrc.mChip
   if(not nP) then return oFTrc end
@@ -273,17 +347,30 @@ local function dumpItem(oFTrc, sNam, sPos)
   logStatus(" Dir: "..tostring(oFTrc.mDir or gsNotAvStr), oChip, nP)
   logStatus(" Ent: "..tostring(oFTrc.mEnt or gsNotAvStr), oChip, nP)
   logStatus(" E2 : "..tostring(oChip.entity or gsNotAvStr), oChip, nP)
-  local tHit = oFTrc.mHit -- Read the general hit list
-  local tEnt = tHit.Ent   -- Read the direct hit entities list
-  local tS, tO = tEnt.SKIP, tEnt.ONLY -- Read entity skip and only list
+  logStatus(" Fmo: "..getFilterMode(oFTrc), oChip, nP)
+  local tFnc = oFTrc.mFnc -- Read the general hit list
+  local tEnt = tFnc.Ent   -- Read the direct hit entities list
   logStatus(formType(0, tEnt.TYPE), oChip, nP)
-  if(tS and next(tS)) then for kS, vS in pairs(tS) do logStatus(formDump("SKIP", kS, vS), oChip, nP) end end
-  if(tO and next(tO)) then for kO, vO in pairs(tO) do logStatus(formDump("ONLY", kO, vO), oChip, nP) end end
-  local nSz = tHit.Size; if(nSz <= 0) then return oFTrc end
-  for iH = 1, nSz do local tID = tHit[iH]; tS, tO = tID.SKIP, tID.ONLY
+  tS = pickTable(tEnt.SKIP); if(tS) then -- Read entity skip list when available
+    for kS, vS in pairs(tS) do logStatus(formDump("SKIP", kS, vS), oChip, nP) end end
+  tO = pickTable(tEnt.ONLY); if(tO) then -- Read entity only list when available
+    for kO, vO in pairs(tO) do logStatus(formDump("ONLY", kO, vO), oChip, nP) end end
+  local nSz = tFnc.Size; if(nSz <= 0) then return oFTrc end
+  for iH = 1, nSz do local tID = tFnc[iH]; tS, tO = tID.SKIP, tID.ONLY
     logStatus(formType(iH, tID.TYPE)..":"..tostring(tID.CALL or gsNotAvStr), oChip, nP)
     if(tS) then for kS, vS in pairs(tS) do logStatus(formDump("SKIP", kS, vS), oChip, nP) end end
     if(tO) then for kO, vO in pairs(tO) do logStatus(formDump("ONLY", kO, vO), oChip, nP) end end
+  end
+  local tF = pickTable(oFTrc.mFlt.Ear)
+  if(tF) then
+    local nF = oFTrc.mFlt.Size -- Total amaunt of entities in the array
+    local nL = tostring(nF):len() -- Aligment length for the key index
+    local fF = ("%"..nL.."d") -- Generate format string for aligment
+    logStatus(gsFormEar:format(nF, nL), oChip, nP)
+    for iF = 1, nF do local vE, sC, iC = tF[iF], gsNotAvStr, 0
+      if(isValid(vE)) then sC, iC = vE:GetClass(), vE:EntIndex() end
+      logStatus(formDump(fF:format(iF), iC, sC), oChip, nP)
+    end
   end; return oFTrc -- The dump method returns a pointer to the current instance
 end
 
@@ -295,12 +382,12 @@ end
  * vDir  > Tracer direction reference in local or word coordinates
  * nLen  > Tracer length number in source engine units
 ]]
-local function newItem(oChip, vEnt, vPos, vDir, nLen)
+local function newTracer(oChip, vEnt, vPos, vDir, nLen)
   local eChip = oChip.entity; if(not isValid(eChip)) then
     return logStatus("Entity invalid", oChip, nil, nil) end
   local oFTrc, ncDir, ncLen = {}, getNorm(vDir), (tonumber(nLen) or 0)
-  oFTrc.mChip, oFTrc.mHit = oChip, {Size = 0, ID = {}};
-  oFTrc.mHit.Ent = {SKIP = {}, ONLY = {}, TYPE = type(eChip)} -- No entities in ONLY or SKIP by default
+  oFTrc.mChip, oFTrc.mFnc, oFTrc.mFlt = oChip, {Size = 0, ID = {}}, {};
+  oFTrc.mFnc.Ent = {SKIP = {}, ONLY = {}, TYPE = type(eChip)} -- No entities in ONLY or SKIP by default
   if(isValid(vEnt)) then oFTrc.mEnt = vEnt else oFTrc.mEnt = nil end -- Make sure the entity is cleared
   oFTrc.mPos, oFTrc.mDir = Vector(), Vector(0, 0, 1)
   if(vPos) then -- Local tracer position the trace starts from
@@ -314,6 +401,22 @@ local function newItem(oChip, vEnt, vPos, vDir, nLen)
   oFTrc.mDir:Normalize() -- Normalize the direction
   oFTrc.mDir:Mul(oFTrc.mLen) -- Multiply to add in real-time
   oFTrc.mLen = math.abs(oFTrc.mLen) -- Length to absolute
+  -- Configure trace settings filter method and data
+  oFTrc.mFlt.Fnc = function(oEnt) -- This is used for custom filtering
+    if(not isValid(oEnt)) then return end -- Exit when entity invalid
+    local tFnc = oFTrc.mFnc -- Store reference to the trace hit list
+    local nS, vV = getFncStatus(tFnc.Ent, oEnt) -- Check the entity
+    if(nS > 1) then return vV end -- Entity found or skipped return
+    if(tFnc.Size > 0) then -- Swipe trough the other lists available
+      for IH = 1, tFnc.Size do local vFnc = tFnc[IH] -- Read list conf
+        local vC = convFncValue(oEnt, vFnc.CALL) -- Extract entity value
+        local nS, vV = getFncStatus(vFnc, vC) -- Check extracted value
+        if(nS > 1) then return vV end -- Option skipped or selected return
+      end -- All options are checked then trace hit normally routine
+    end; return true -- Finally we register the trace hit enabled
+  end -- Defines a general universal filter finction may be slower
+  oFTrc.mFlt.Ear  = {} -- Direct entity filter place holder
+  oFTrc.mFlt.Size = 0  -- Direct entity filter place holder size
   -- https://wiki.facepunch.com/gmod/Structures/TraceResult
   oFTrc.mTrO = {} -- Trace output parameters
   -- https://wiki.facepunch.com/gmod/Structures/Trace
@@ -322,19 +425,8 @@ local function newItem(oChip, vEnt, vPos, vDir, nLen)
     start = Vector(), -- The start position of the trace
     output = oFTrc.mTrO, -- Provide output place holder table
     endpos = Vector(), -- The end position of the trace
-    filter = function(oEnt) -- This is used for custom filtering
-      if(not isValid(oEnt)) then return end -- Exit when when invalid
-      local tHit = oFTrc.mHit -- Store reference to the trace hit list
-      local nS, vV = getHitStatus(tHit.Ent, oEnt) -- Check the entity
-      if(nS > 1) then return vV end -- Entity found or skipped return
-      if(tHit.Size > 0) then -- Swipe trough the other lists available
-        for IH = 1, tHit.Size do local vHit = tHit[IH] -- Read list conf
-          local vC = convHitValue(oEnt, vHit.CALL) -- Extract entity value
-          local nS, vV = getHitStatus(vHit, vC) -- Check extracted value
-          if(nS > 1) then return vV end -- Option skipped or selected return
-        end -- All options are checked then trace hit normally routine
-      end; return true -- Finally we register the trace hit enabled
-    end, ignoreworld = false, -- Should the trace ignore world or not
+    filter = nil, -- By default there is no filter configured
+    ignoreworld = false, -- Should the trace ignore world or not
     collisiongroup = COLLISION_GROUP_NONE } -- Collision group control
   return oFTrc -- Return the created tracer object
 end
@@ -358,233 +450,344 @@ end
 
 __e2setcost(20)
 e2function ftrace entity:setFTrace(vector vP, vector vD, number nL)
-  return newItem(self, this, vP, vD, nL)
+  return newTracer(self, this, vP, vD, nL)
 end
 
 __e2setcost(20)
 e2function ftrace newFTrace(vector vP, vector vD, number nL)
-  return newItem(self, nil, vP, vD, nL)
+  return newTracer(self, nil, vP, vD, nL)
 end
 
 __e2setcost(20)
 e2function ftrace entity:setFTrace(vector vP, vector vD)
-  return newItem(self, this, vP, vD)
+  return newTracer(self, this, vP, vD)
 end
 
 __e2setcost(20)
 e2function ftrace newFTrace(vector vP, vector vD)
-  return newItem(self, nil, vP, vD)
+  return newTracer(self, nil, vP, vD)
 end
 
 __e2setcost(20)
 e2function ftrace entity:setFTrace(vector vP, number nL)
-  return newItem(self, this, vP, nil, nL)
+  return newTracer(self, this, vP, nil, nL)
 end
 
 __e2setcost(20)
 e2function ftrace newFTrace(vector vP, number nL)
-  return newItem(self, nil, vP, nil, nL)
+  return newTracer(self, nil, vP, nil, nL)
 end
 
 __e2setcost(20)
 e2function ftrace entity:setFTrace(vector vP)
-  return newItem(self, this, vP, nil, nil)
+  return newTracer(self, this, vP, nil, nil)
 end
 
 __e2setcost(20)
 e2function ftrace newFTrace(vector vP)
-  return newItem(self, nil, vP, nil, nil)
+  return newTracer(self, nil, vP, nil, nil)
 end
 
 __e2setcost(20)
 e2function ftrace entity:setFTrace(number nL)
-  return newItem(self, this, nil, nil, nL)
+  return newTracer(self, this, nil, nil, nL)
 end
 
 __e2setcost(20)
 e2function ftrace newFTrace(number nL)
-  return newItem(self, nil, nil, nil, nL)
+  return newTracer(self, nil, nil, nil, nL)
 end
 
 __e2setcost(20)
 e2function ftrace entity:setFTrace()
-  return newItem(self, this, nil, nil, nil)
+  return newTracer(self, this, nil, nil, nil)
 end
 
 __e2setcost(20)
 e2function ftrace newFTrace()
-  return newItem(self, nil, nil, nil, nil)
+  return newTracer(self, nil, nil, nil, nil)
 end
 
 --[[ **************************** COPY **************************** ]]
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE, vector vP, vector vD, number nL)
-  return newItem(self, eE, vP, vD, nL)
+  return newTracer(self, eE, vP, vD, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(vector vP, vector vD, number nL)
-  return newItem(self, this.mEnt, vP, vD, nL)
+  return newTracer(self, this.mEnt, vP, vD, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE, vector vP, vector vD)
-  return newItem(self, eE, vP, vD, this.mLen)
+  return newTracer(self, eE, vP, vD, this.mLen)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(vector vP, vector vD)
-  return newItem(self, this.mEnt, vP, vD, this.mLen)
+  return newTracer(self, this.mEnt, vP, vD, this.mLen)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE, vector vP, number nL)
-  return newItem(self, eE, vP, this.mDir, nL)
+  return newTracer(self, eE, vP, this.mDir, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(vector vP, number nL)
-  return newItem(self, this.mEnt, vP, this.mDir, nL)
+  return newTracer(self, this.mEnt, vP, this.mDir, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE, vector vP)
-  return newItem(self, eE, vP, this.mDir, this.mLen)
+  return newTracer(self, eE, vP, this.mDir, this.mLen)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(vector vP)
-  return newItem(self, this.mEnt, vP, this.mDir, this.mLen)
+  return newTracer(self, this.mEnt, vP, this.mDir, this.mLen)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE, number nL)
-  return newItem(self, eE, this.mPos, this.mDir, nL)
+  return newTracer(self, eE, this.mPos, this.mDir, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(number nL)
-  return newItem(self, this.mEnt, this.mPos, this.mDir, nL)
+  return newTracer(self, this.mEnt, this.mPos, this.mDir, nL)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy(entity eE)
-  return newItem(self, eE, this.mPos, this.mDir, this.mLen)
+  return newTracer(self, eE, this.mPos, this.mDir, this.mLen)
 end
 
 __e2setcost(20)
 e2function ftrace ftrace:getCopy()
-  return newItem(self, this.mEnt, this.mPos, this.mDir, this.mLen)
+  return newTracer(self, this.mEnt, this.mPos, this.mDir, this.mLen)
 end
 
---[[ **************************** ENTITY **************************** ]]
+--[[ **************************** FILTER CHANGE **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:addEntHitSkip(entity vE)
+e2function string ftrace:getFilterMode()
+  return getFilterMode(this)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:remFilter()
+  if(not this) then return nil end
+  this.mTrI.filter = nil; return this
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:setFilterEnt()
+  if(not this) then return nil end
+  this.mTrI.filter = this.mFlt.Ear; return this
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:setFilterEnt(entity vE)
   if(not this) then return nil end
   if(not isValid(vE)) then return nil end
-  this.mHit.Ent.SKIP[vE] = true; return this
+  this.mTrI.filter = vE; return this
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remEntHitSkip(entity vE)
+e2function ftrace ftrace:setFilterFnc()
+  if(not this) then return nil end
+  this.mTrI.filter = this.mFlt.Fnc; return this
+end
+
+--[[ **************************** FUNCTION ENTITY FILTER **************************** ]]
+
+__e2setcost(3)
+e2function ftrace ftrace:insFncSkipEnt(entity vE)
   if(not this) then return nil end
   if(not isValid(vE)) then return nil end
-  this.mHit.Ent.SKIP[vE] = nil; return this
+  this.mFnc.Ent.SKIP[vE] = true; return this
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remEntHitSkip()
-  if(not this) then return nil end
-  table.Empty(this.mHit.Ent.SKIP); return this
-end
-
-__e2setcost(3)
-e2function ftrace ftrace:addEntHitOnly(entity vE)
+e2function ftrace ftrace:remFncSkipEnt(entity vE)
   if(not this) then return nil end
   if(not isValid(vE)) then return nil end
-  this.mHit.Ent.ONLY[vE] = true; return this
+  this.mFnc.Ent.SKIP[vE] = nil; return this
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remEntHitOnly(entity vE)
+e2function ftrace ftrace:remFncSkipEnt()
+  if(not this) then return nil end
+  table.Empty(this.mFnc.Ent.SKIP); return this
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:insFncOnlyEnt(entity vE)
   if(not this) then return nil end
   if(not isValid(vE)) then return nil end
-  this.mHit.Ent.ONLY[vE] = nil; return this
+  this.mFnc.Ent.ONLY[vE] = true; return this
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remEntHitOnly()
+e2function ftrace ftrace:remFncOnlyEnt(entity vE)
   if(not this) then return nil end
-  table.Empty(this.mHit.Ent.ONLY); return this
+  if(not isValid(vE)) then return nil end
+  this.mFnc.Ent.ONLY[vE] = nil; return this
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remEntHit()
+e2function ftrace ftrace:remFncOnlyEnt()
   if(not this) then return nil end
-  table.Empty(this.mHit.Ent.SKIP)
-  table.Empty(this.mHit.Ent.ONLY); return this
+  table.Empty(this.mFnc.Ent.ONLY); return this
 end
 
---[[ **************************** FILTER **************************** ]]
+__e2setcost(3)
+e2function ftrace ftrace:remFncEnt()
+  if(not this) then return nil end
+  table.Empty(this.mFnc.Ent.SKIP)
+  table.Empty(this.mFnc.Ent.ONLY); return this
+end
+
+--[[ **************************** ENTITY ARRAY **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:remHit()
+e2function ftrace ftrace:insEar(array vR)
+  return transEntityList(this, vR, false, false)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:insEar(table vT)
+  return transEntityList(this, vT, true, false)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:insEar(entity vE)
+  return transEntityList(this, {vE}, false, false)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:insEarID(array vR)
+  return transEntityList(this, vR, false, true)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:insEarID(table vT)
+  return transEntityList(this, vT, true, true)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:insEarID(number iE)
+  return transEntityList(this, {math.floor(iE)}, false, true)
+end
+
+__e2setcost(3)
+e2function number ftrace:getEarSZ()
   if(not this) then return nil end
-  local tID = this.mHit.ID
+  return this.mFlt.Size
+end
+
+__e2setcost(3)
+e2function number ftrace:updEarSZ()
+  return updateEarSize()
+end
+
+--[[ **************************** REMOVE HIT ITEMS **************************** ]]
+
+__e2setcost(3)
+e2function ftrace ftrace:remEarN(number iN)
+  if(not this) then return nil end
+  table.remove(this.mFlt.Ear, math.floor(iN))
+  return updateEarSize(this)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:remEarID(number iE)
+  if(not this) then return nil end
+  local tE = this.mFlt.Ear
+  local vE = Entity(math.floor(iE))
+  local iN = table.KeyFromValue(tE, vE)
+  if(iN) then table.remove(tE, iN) end
+  return updateEarSize(this)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:remEar(entity vE)
+  if(not this) then return nil end
+  if(not isValid(vE)) then return this end
+  local tE = this.mFlt.Ear
+  local iN = table.KeyFromValue(tE, vE)
+  if(iN) then table.remove(tE, iN) end
+  return updateEarSize(this)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:remEar()
+  if(not this) then return nil end
+  table.Empty(this.mFlt.Ear)
+  return updateEarSize(this)
+end
+
+--[[ **************************** REMOVE HIT ITEMS **************************** ]]
+
+__e2setcost(3)
+e2function ftrace ftrace:remFnc()
+  if(not this) then return nil end
+  local tID = this.mFnc.ID
   for key, id in pairs(tID) do
-    remHitFilter(this, key)
+    remFncFilter(this, key)
   end; return this
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remHit(string sM)
-  return remHitFilter(this, sM)
+e2function ftrace ftrace:remFnc(string sM)
+  return remFncFilter(this, sM)
 end
 
 --[[ **************************** NUMBER **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:addHitSkip(string sM, number vN)
-  return setHitFilter(this, sM, "SKIP", vN, true)
+e2function ftrace ftrace:insFncSkip(string sM, number vN)
+  return setFncFilter(this, sM, "SKIP", vN, true)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remHitSkip(string sM, number vN)
-  return setHitFilter(this, sM, "SKIP", vN, nil)
+e2function ftrace ftrace:remFncSkip(string sM, number vN)
+  return setFncFilter(this, sM, "SKIP", vN, nil)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:addHitOnly(string sM, number vN)
-  return setHitFilter(this, sM, "ONLY", vN, true)
+e2function ftrace ftrace:insFncOnly(string sM, number vN)
+  return setFncFilter(this, sM, "ONLY", vN, true)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remHitOnly(string sM, number vN)
-  return setHitFilter(this, sM, "ONLY", vN, nil)
+e2function ftrace ftrace:remFncOnly(string sM, number vN)
+  return setFncFilter(this, sM, "ONLY", vN, nil)
 end
 
 --[[ **************************** STRING **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:addHitSkip(string sM, string vS)
-  return setHitFilter(this, sM, "SKIP", vS, true)
+e2function ftrace ftrace:insFncSkip(string sM, string vS)
+  return setFncFilter(this, sM, "SKIP", vS, true)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remHitSkip(string sM, string vS)
-  return setHitFilter(this, sM, "SKIP", vS, nil)
+e2function ftrace ftrace:remFncSkip(string sM, string vS)
+  return setFncFilter(this, sM, "SKIP", vS, nil)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:addHitOnly(string sM, string vS)
-  return setHitFilter(this, sM, "ONLY", vS, true)
+e2function ftrace ftrace:insFncOnly(string sM, string vS)
+  return setFncFilter(this, sM, "ONLY", vS, true)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:remHitOnly(string sM, string vS)
-  return setHitFilter(this, sM, "ONLY", vS, nil)
+e2function ftrace ftrace:remFncOnly(string sM, string vS)
+  return setFncFilter(this, sM, "ONLY", vS, nil)
 end
 
 --[[ **************************** RAY **************************** ]]
@@ -763,32 +966,32 @@ end
 
 __e2setcost(3)
 e2function vector ftrace:getPosLocal()
-  return convOrgEnt(this, "WorldToLocal", nil)
+  return convOrgEnt(this, "WL", nil)
 end
 
 __e2setcost(3)
 e2function vector ftrace:getPosWorld()
-  return convOrgEnt(this, "LocalToWorld", nil)
+  return convOrgEnt(this, "LW", nil)
 end
 
 __e2setcost(3)
 e2function vector ftrace:getPosLocal(entity vE)
-  return convOrgEnt(this, "WorldToLocal", vE)
+  return convOrgEnt(this, "WL", vE)
 end
 
 __e2setcost(3)
 e2function vector ftrace:getPosWorld(entity vE)
-  return convOrgEnt(this, "LocalToWorld", vE)
+  return convOrgEnt(this, "LW", vE)
 end
 
 __e2setcost(7)
 e2function vector ftrace:getPosLocal(vector vP, angle vA)
-  return convOrgUCS(this, "WorldToLocal", vP, vA)
+  return convOrgUCS(this, "WL", vP, vA)
 end
 
 __e2setcost(7)
 e2function vector ftrace:getPosWorld(vector vP, angle vA)
-  return convOrgUCS(this, "LocalToWorld", vP, vA)
+  return convOrgUCS(this, "LW", vP, vA)
 end
 
 __e2setcost(3)
@@ -1177,21 +1380,21 @@ e2function number ftrace:getHitContents()
 end
 
 __e2setcost(15)
-e2function ftrace ftrace:dumpItem(number nN)
-  return dumpItem(this, nN)
+e2function ftrace ftrace:dmpItem(number nN)
+  return dumpTracer(this, nN)
 end
 
 __e2setcost(15)
-e2function ftrace ftrace:dumpItem(string sN)
-  return dumpItem(this, sN)
+e2function ftrace ftrace:dmpItem(string sN)
+  return dumpTracer(this, sN)
 end
 
 __e2setcost(15)
-e2function ftrace ftrace:dumpItem(string nT, number nN)
-  return dumpItem(this, nN, nT)
+e2function ftrace ftrace:dmpItem(string nT, number nN)
+  return dumpTracer(this, nN, nT)
 end
 
 __e2setcost(15)
-e2function ftrace ftrace:dumpItem(string nT, string sN)
-  return dumpItem(this, sN, nT)
+e2function ftrace ftrace:dmpItem(string nT, string sN)
+  return dumpTracer(this, sN, nT)
 end
