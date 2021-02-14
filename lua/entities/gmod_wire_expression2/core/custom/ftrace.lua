@@ -328,6 +328,24 @@ local function moveEntityList(oFTrc, tData, bTab, bID)
   end; return updateEarSize(oFTrc)
 end
 
+--[[
+ * Returns copy array for the entity filter list
+ * oFTrc > Reference to tracer object
+ * bID   > When enabled the table contains entity ID
+]]
+local function getEntityList(oFTrc, bID)
+  if(not oFTrc) then return nil end
+  local tO, iO = {}, 0
+  local tE, iD = oFTrc.mFlt.Ear, 1
+  while(tE[iD]) do local vE = tE[iD]
+    if(isValid(vE)) then iO = iO + 1
+      if(bID) then
+        tO[iO] = vE:EntIndex()
+      else tO[iO] = vE end
+    end; iD = iD + 1
+  end; return tO
+end
+
 local function getFilterMode(oFTrc)
   if(not oFTrc) then return "XXX" end -- Unavailable
   local tF = oFTrc.mTrI.filter -- Filter table reference
@@ -669,6 +687,11 @@ e2function ftrace ftrace:insEar(entity vE)
 end
 
 __e2setcost(3)
+e2function array ftrace:getEar()
+  return getEntityList(this, false)
+end
+
+__e2setcost(3)
 e2function ftrace ftrace:insEarID(array vR)
   return moveEntityList(this, vR, false, true)
 end
@@ -681,6 +704,11 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:insEarID(number iE)
   return moveEntityList(this, {math.floor(iE)}, false, true)
+end
+
+__e2setcost(3)
+e2function array ftrace:getEarID()
+  return getEntityList(this, true)
 end
 
 __e2setcost(3)
