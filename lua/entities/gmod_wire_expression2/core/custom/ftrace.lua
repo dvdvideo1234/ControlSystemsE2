@@ -301,7 +301,7 @@ end
  * bTab  > When enabled process as table instead of array
  * bID   > When enabled the source table contains entity ID
 ]]
-local function transEntityList(oFTrc, tData, bTab, bID)
+local function moveEntityList(oFTrc, tData, bTab, bID)
   if(not oFTrc) then return nil end
   local tE = oFTrc.mFlt.Ear
   if(bTab) then local iD = 1
@@ -584,7 +584,7 @@ e2function ftrace ftrace:remFilter()
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:setFilterEnt()
+e2function ftrace ftrace:setFilterEar()
   if(not this) then return nil end
   this.mTrI.filter = this.mFlt.Ear; return this
 end
@@ -607,14 +607,14 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:insFncSkipEnt(entity vE)
   if(not this) then return nil end
-  if(not isValid(vE)) then return nil end
+  if(not isValid(vE)) then return this end
   this.mFnc.Ent.SKIP[vE] = true; return this
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:remFncSkipEnt(entity vE)
   if(not this) then return nil end
-  if(not isValid(vE)) then return nil end
+  if(not isValid(vE)) then return this end
   this.mFnc.Ent.SKIP[vE] = nil; return this
 end
 
@@ -627,14 +627,14 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:insFncOnlyEnt(entity vE)
   if(not this) then return nil end
-  if(not isValid(vE)) then return nil end
+  if(not isValid(vE)) then return this end
   this.mFnc.Ent.ONLY[vE] = true; return this
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:remFncOnlyEnt(entity vE)
   if(not this) then return nil end
-  if(not isValid(vE)) then return nil end
+  if(not isValid(vE)) then return this end
   this.mFnc.Ent.ONLY[vE] = nil; return this
 end
 
@@ -655,32 +655,32 @@ end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEar(array vR)
-  return transEntityList(this, vR, false, false)
+  return moveEntityList(this, vR, false, false)
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEar(table vT)
-  return transEntityList(this, vT, true, false)
+  return moveEntityList(this, vT, true, false)
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEar(entity vE)
-  return transEntityList(this, {vE}, false, false)
+  return moveEntityList(this, {vE}, false, false)
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEarID(array vR)
-  return transEntityList(this, vR, false, true)
+  return moveEntityList(this, vR, false, true)
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEarID(table vT)
-  return transEntityList(this, vT, true, true)
+  return moveEntityList(this, vT, true, true)
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEarID(number iE)
-  return transEntityList(this, {math.floor(iE)}, false, true)
+  return moveEntityList(this, {math.floor(iE)}, false, true)
 end
 
 __e2setcost(3)
@@ -690,11 +690,11 @@ e2function number ftrace:getEarSZ()
 end
 
 __e2setcost(3)
-e2function number ftrace:updEarSZ()
+e2function ftrace ftrace:updEarSZ()
   return updateEarSize()
 end
 
---[[ **************************** REMOVE HIT ITEMS **************************** ]]
+--[[ **************************** REMOVE ARRAY ITEMS **************************** ]]
 
 __e2setcost(3)
 e2function ftrace ftrace:remEarN(number iN)
@@ -730,7 +730,7 @@ e2function ftrace ftrace:remEar()
   return updateEarSize(this)
 end
 
---[[ **************************** REMOVE HIT ITEMS **************************** ]]
+--[[ **************************** REMOVE FUNCTION ITEMS **************************** ]]
 
 __e2setcost(3)
 e2function ftrace ftrace:remFnc()
@@ -746,7 +746,7 @@ e2function ftrace ftrace:remFnc(string sM)
   return remFncFilter(this, sM)
 end
 
---[[ **************************** NUMBER **************************** ]]
+--[[ **************************** FUNCTION NUMBER **************************** ]]
 
 __e2setcost(3)
 e2function ftrace ftrace:insFncSkip(string sM, number vN)
@@ -768,7 +768,7 @@ e2function ftrace ftrace:remFncOnly(string sM, number vN)
   return setFncFilter(this, sM, "ONLY", vN, nil)
 end
 
---[[ **************************** STRING **************************** ]]
+--[[ **************************** FUNCTION STRING **************************** ]]
 
 __e2setcost(3)
 e2function ftrace ftrace:insFncSkip(string sM, string vS)
@@ -1380,21 +1380,21 @@ e2function number ftrace:getHitContents()
 end
 
 __e2setcost(15)
-e2function ftrace ftrace:dmpItem(number nN)
+e2function ftrace ftrace:dumpItem(number nN)
   return dumpTracer(this, nN)
 end
 
 __e2setcost(15)
-e2function ftrace ftrace:dmpItem(string sN)
+e2function ftrace ftrace:dumpItem(string sN)
   return dumpTracer(this, sN)
 end
 
 __e2setcost(15)
-e2function ftrace ftrace:dmpItem(string nT, number nN)
+e2function ftrace ftrace:dumpItem(string nT, number nN)
   return dumpTracer(this, nN, nT)
 end
 
 __e2setcost(15)
-e2function ftrace ftrace:dmpItem(string nT, string sN)
+e2function ftrace ftrace:dumpItem(string nT, string sN)
   return dumpTracer(this, sN, nT)
 end

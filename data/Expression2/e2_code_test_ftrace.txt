@@ -1,21 +1,33 @@
 @name Test
-@inputs 
+@inputs
 @outputs [H1 H2 H3 H4]:array C
 @persist [A B]:ftrace E:entity
-@trigger 
+@trigger
 @model models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl
 runOnTick(1)
 
 if(first() || dupefinished())
 {
     E = entity()
-    A = E:setFTrace(vec(0,0,0),vec(0,0,1), 25):addEntHitSkip(E):addHitOnly("GetClass","prop_physics"):dumpItem("A")
-    B = A:getCopy():addHitOnly("GetClass","prop_physics"):addHitSkip("GetModel", 1):addEntHitSkip(E)
-    
-    holoCreate(1,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(1,vec(255,0,0))        
+    A = E:setFTrace(vec(0,0,0),vec(0,0,1), 25)
+        A:insFncSkipEnt(E):insEar(E)
+        A:insFncSkip("GetModel", "models/props_c17/furnitureshelf001a.mdl")
+        # A:insFncSkip("GetModel", "models/props_c17/oildrum001.mdl")
+        A:insFncOnly("GetClass","prop_physics")
+        A:insEarID(123)
+        # A:setFilterEnt()
+        A:setFilterFnc()
+        A:dumpItem("A")
+        print(1, "\n")
+    B = A:getCopy():insFncSkipEnt(E):insFncOnly("GetClass","prop_physics")
+        B:setFilterFnc():insFncSkip("GetModel", 1)
+
+    holoCreate(1,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(1,vec(255,0,0))
     holoCreate(2,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(2,vec(0,255,0))
     holoCreate(3,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(3,vec(0,0,255))
 }
+
+# print(A:getEntity():model())
 
 A:smpLocal()
 
