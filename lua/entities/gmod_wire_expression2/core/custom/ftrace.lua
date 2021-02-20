@@ -233,6 +233,14 @@ local function remFncFilter(oFTrc, sM)
     tFnc.ID[HM] = IH end; tFnc.ID[sM] = nil; return oFTrc
 end
 
+--[[
+ * Registers method and its return value in the function hit list
+ * oFTrc > Reference to tracer object
+ * sM    > Entity method to register in the configuration
+ * sO    > Registration mode eithr being ( SKIP or ONLY )
+ * vV    > The data that functional filter will compare
+ * bS    > Status configuration flag ( any value )
+]]
 local function setFncFilter(oFTrc, sM, sO, vV, bS)
   if(not oFTrc) then return nil end
   local tFnc, sTyp = oFTrc.mFnc, type(vV) -- Obtain hit filter location
@@ -297,11 +305,11 @@ end
 --[[
  * Moves only the entities from source to destination
  * oFTrc > Reference to tracer object
- * tData > Source data table to read from
+ * tData > Source data table to read from ( entity array )
  * bTab  > When enabled process as table instead of array
  * bID   > When enabled the source table contains entity ID
 ]]
-local function moveEntityList(oFTrc, tData, bTab, bID)
+local function putFilterEar(oFTrc, tData, bTab, bID)
   if(not oFTrc) then return nil end
   local tE = oFTrc.mFlt.Ear
   if(bTab) then local iD = 1
@@ -326,6 +334,30 @@ local function moveEntityList(oFTrc, tData, bTab, bID)
       end
     end
   end; return updateEarSize(oFTrc)
+end
+
+--[[
+ * Moves only the entities from source to destination
+ * oFTrc > Reference to tracer object
+ * tData > Source data table to read from ( function filter )
+]]
+local function putFilterFnc(oFTrc, tData)
+  if(not oFTrc) then return nil end
+  if(not tData) then return oFTrc end
+  for iD = 1, tData.Size do local vD = tData[iD]
+    -- Transfer the SKIP configuration for the table
+    if(vD.SKIP) then for key, val in pairs(vD.SKIP) do
+      setFncFilter(oFTrc, vD.CALL, "SKIP", key, true) end end
+    -- Transfer the ONLY configuration for the table
+    if(vD.ONLY) then for key, val in pairs(vD.ONLY) do
+      setFncFilter(oFTrc, vD.CALL, "ONLY", key, true) end end
+  end
+  -- Transsfer referencies from the entity array
+  for key, val in pairs(tData.Ent.SKIP) do
+    oFTrc.mFnc.Ent.SKIP[key] = val end
+  for key, val in pairs(tData.Ent.ONLY) do
+    oFTrc.mFnc.Ent.ONLY[key] = val end
+  return oFTrc -- Return the reference of the tracer
 end
 
 --[[
@@ -433,8 +465,9 @@ local function newTracer(oChip, vEnt, vPos, vDir, nLen)
       end -- All options are checked then trace hit normally routine
     end; return true -- Finally we register the trace hit enabled
   end -- Defines a general universal filter finction may be slower
-  oFTrc.mFlt.Ear  = {} -- Direct entity filter place holder
-  oFTrc.mFlt.Size = 0  -- Direct entity filter place holder size
+  oFTrc.mFlt.Enu  = nil -- Direct entity filter place holder unit
+  oFTrc.mFlt.Ear  = {} -- Direct entity filter place holder array
+  oFTrc.mFlt.Size = 0 -- Direct entity filter place holder size
   -- https://wiki.facepunch.com/gmod/Structures/TraceResult
   oFTrc.mTrO = {} -- Trace output parameters
   -- https://wiki.facepunch.com/gmod/Structures/Trace
@@ -588,6 +621,41 @@ e2function ftrace ftrace:getCopy()
   return newTracer(self, this.mEnt, this.mPos, this.mDir, this.mLen)
 end
 
+--[[ **************************** FILTER COPY **************************** ]]
+
+__e2setcost(3)
+e2function ftrace ftrace:useFilterEnu(ftrace oT)
+  if(not this) then return nil end
+  if(not oT) then return this end
+  this.mFlt.Enu = oT.mFlt.Enu; return this
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:useFilterEar(ftrace oT)
+  if(not this) then return nil end
+  if(not oT) then return this end
+  this.mFlt.Ear = oT.mFlt.Ear; return this
+end
+
+__e2setcost(12)
+e2function ftrace ftrace:cpyFilterEar(ftrace oT)
+  if(not this) then return nil end
+  if(not oT) then return this end
+  return putFilterEar(this, oT.mFlt.Ear, false, false)
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:useFilterFnc(ftrace oT)
+  if(not this) then return nil end
+  if(not oT) then return this end
+  this.mFlt.Fnc = oT.mFlt.Fnc; return this
+end
+
+__e2setcost(12)
+e2function ftrace ftrace:cpyFilterFnc(ftrace oT)
+  return putFilterFnc(this, oT.mFnc)
+end
+
 --[[ **************************** FILTER CHANGE **************************** ]]
 
 __e2setcost(3)
@@ -608,16 +676,38 @@ e2function ftrace ftrace:setFilterEar()
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:setFilterEnt(entity vE)
+e2function ftrace ftrace:setFilterEnu()
   if(not this) then return nil end
   if(not isValid(vE)) then return nil end
-  this.mTrI.filter = vE; return this
+  this.mTrI.filter = this.mFlt.Enu; return this
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:setFilterFnc()
   if(not this) then return nil end
   this.mTrI.filter = this.mFlt.Fnc; return this
+end
+
+--[[ **************************** ENTITY UNIT FILTER **************************** ]]
+
+__e2setcost(3)
+e2function ftrace ftrace:insEnu(entity vE)
+  if(not this) then return nil end
+  if(not isValid(vE)) then return this end
+  this.mFlt.Enu = vE; return this
+end
+
+__e2setcost(3)
+e2function entity ftrace:getEnu()
+  if(not this) then return nil end
+  return this.mFlt.Enu
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:remEnu()
+  if(not this) then return nil end
+  if(not isValid(vE)) then return this end
+  this.mFlt.Enu = nil; return this
 end
 
 --[[ **************************** FUNCTION ENTITY FILTER **************************** ]]
@@ -669,21 +759,21 @@ e2function ftrace ftrace:remFncEnt()
   table.Empty(this.mFnc.Ent.ONLY); return this
 end
 
---[[ **************************** ENTITY ARRAY **************************** ]]
+--[[ **************************** ENTITY ARRAY FILTER **************************** ]]
 
 __e2setcost(3)
 e2function ftrace ftrace:insEar(array vR)
-  return moveEntityList(this, vR, false, false)
+  return putFilterEar(this, vR, false, false)
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEar(table vT)
-  return moveEntityList(this, vT, true, false)
+  return putFilterEar(this, vT, true, false)
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEar(entity vE)
-  return moveEntityList(this, {vE}, false, false)
+  return putFilterEar(this, {vE}, false, false)
 end
 
 __e2setcost(3)
@@ -693,17 +783,17 @@ end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEarID(array vR)
-  return moveEntityList(this, vR, false, true)
+  return putFilterEar(this, vR, false, true)
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEarID(table vT)
-  return moveEntityList(this, vT, true, true)
+  return putFilterEar(this, vT, true, true)
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:insEarID(number iE)
-  return moveEntityList(this, {math.floor(iE)}, false, true)
+  return putFilterEar(this, {math.floor(iE)}, false, true)
 end
 
 __e2setcost(3)
@@ -722,7 +812,7 @@ e2function ftrace ftrace:updEarSZ()
   return updateEarSize()
 end
 
---[[ **************************** REMOVE ARRAY ITEMS **************************** ]]
+--[[ **************************** REMOVE ENTITY ARRAY ITEMS **************************** ]]
 
 __e2setcost(3)
 e2function ftrace ftrace:remEarN(number iN)
