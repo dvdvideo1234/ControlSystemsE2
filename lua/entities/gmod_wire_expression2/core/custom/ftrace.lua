@@ -691,7 +691,7 @@ end
 --[[ **************************** ENTITY UNIT FILTER **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:insEnu(entity vE)
+e2function ftrace ftrace:putEnu(entity vE)
   if(not this) then return nil end
   if(not isValid(vE)) then return this end
   this.mFlt.Enu = vE; return this
@@ -713,7 +713,7 @@ end
 --[[ **************************** FUNCTION ENTITY FILTER **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:insFncSkipEnt(entity vE)
+e2function ftrace ftrace:putFncSkipEnt(entity vE)
   if(not this) then return nil end
   if(not isValid(vE)) then return this end
   this.mFnc.Ent.SKIP[vE] = true; return this
@@ -733,7 +733,7 @@ e2function ftrace ftrace:remFncSkipEnt()
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:insFncOnlyEnt(entity vE)
+e2function ftrace ftrace:putFncOnlyEnt(entity vE)
   if(not this) then return nil end
   if(not isValid(vE)) then return this end
   this.mFnc.Ent.ONLY[vE] = true; return this
@@ -762,17 +762,17 @@ end
 --[[ **************************** ENTITY ARRAY FILTER **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:insEar(array vR)
+e2function ftrace ftrace:putEar(array vR)
   return putFilterEar(this, vR, false, false)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:insEar(table vT)
+e2function ftrace ftrace:putEar(table vT)
   return putFilterEar(this, vT, true, false)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:insEar(entity vE)
+e2function ftrace ftrace:putEar(entity vE)
   return putFilterEar(this, {vE}, false, false)
 end
 
@@ -782,17 +782,17 @@ e2function array ftrace:getEar()
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:insEarID(array vR)
+e2function ftrace ftrace:putEarID(array vR)
   return putFilterEar(this, vR, false, true)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:insEarID(table vT)
+e2function ftrace ftrace:putEarID(table vT)
   return putFilterEar(this, vT, true, true)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:insEarID(number iE)
+e2function ftrace ftrace:putEarID(number iE)
   return putFilterEar(this, {math.floor(iE)}, false, true)
 end
 
@@ -867,7 +867,7 @@ end
 --[[ **************************** FUNCTION NUMBER **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:insFncSkip(string sM, number vN)
+e2function ftrace ftrace:putFncSkip(string sM, number vN)
   return setFncFilter(this, sM, "SKIP", vN, true)
 end
 
@@ -877,7 +877,7 @@ e2function ftrace ftrace:remFncSkip(string sM, number vN)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:insFncOnly(string sM, number vN)
+e2function ftrace ftrace:putFncOnly(string sM, number vN)
   return setFncFilter(this, sM, "ONLY", vN, true)
 end
 
@@ -889,7 +889,7 @@ end
 --[[ **************************** FUNCTION STRING **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:insFncSkip(string sM, string vS)
+e2function ftrace ftrace:putFncSkip(string sM, string vS)
   return setFncFilter(this, sM, "SKIP", vS, true)
 end
 
@@ -899,7 +899,7 @@ e2function ftrace ftrace:remFncSkip(string sM, string vS)
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:insFncOnly(string sM, string vS)
+e2function ftrace ftrace:putFncOnly(string sM, string vS)
   return setFncFilter(this, sM, "ONLY", vS, true)
 end
 
