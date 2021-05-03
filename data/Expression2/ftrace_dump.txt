@@ -1,12 +1,15 @@
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace: [lol] Data:
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Len: 25
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Pos: 0.000000 0.000000 0.000000
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Dir: 0.000000 0.000000 25.000000
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Ent: Entity [68][gmod_wire_expression2]
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  E2 : Entity [68][gmod_wire_expression2]
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Hit: [0]{Entity} Entity
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:   [SKIP] : {Entity [68][gmod_wire_expression2]} > {true}
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Hit: [1]{string} Entity:GetClass
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:   [ONLY] : {prop_physics} > {true}
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:  Hit: [2]{number} Entity:GetModel
-E2{[Sk$Bh]Trick or treat KID!}{68}:ftrace:   [SKIP] : {1} > {true}
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace: [A] Data:
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  Len: 25
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  Pos: 0.000000 0.000000 0.000000
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  Dir: 0.000000 0.000000 24.999996
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  Ent: Entity [83][gmod_wire_expression2]
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  E2 : Entity [83][gmod_wire_expression2]
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  Fmo: FN
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  FNC: [0]{Entity} Entity
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:   [SKIP] : {Entity [83][gmod_wire_expression2]} > {true}
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  FNC: [1]{string} Entity:GetModel
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:   [SKIP] : {models/props_c17/furnitureshelf001a.mdl} > {true}
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  FNC: [2]{string} Entity:GetClass
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:   [ONLY] : {prop_physics} > {true}
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:  EAR: [1]{1}
+E2{[Sk$Bh]Trick or treat KID!}{83}:ftrace:   [1] : {83} > {gmod_wire_expression2}
