@@ -323,8 +323,7 @@ local function putFilterEar(oFTrc, tData, bTab, bID)
       end
     end
   else
-    local iD = 1
-    while(tData[iD]) do
+    for iD = 1, #tData do
       local vE, eE = tData[iD]
       if(bID) then
         local iE = math.floor(tonumber(vE) or 0)
@@ -332,7 +331,7 @@ local function putFilterEar(oFTrc, tData, bTab, bID)
       else eE = vE end
       if(isValid(eE, "Entity")) then
         table.insert(tE, eE)
-      end; iD = iD + 1
+      end
     end
   end; return updateEarSize(oFTrc)
 end
@@ -364,18 +363,16 @@ end
 --[[
  * Returns copy array for the entity filter list
  * oFTrc > Reference to tracer object
- * bID   > When enabled the table contains entity ID
+ * bID   > When enabled the array contains entity ID
 ]]
 local function getEntityList(oFTrc, bID)
   if(not oFTrc) then return nil end
-  local tO, iO, iD = {}, 0, 1
-  local tE = oFTrc.mFlt.Ear
-  while(tE[iD]) do local vE = tE[iD]
+  local tE, tO, iO = oFTrc.mFlt.Ear, {}, 0
+  for iD = 1, #tE do local vE = tE[iD]
     if(isValid(vE)) then iO = iO + 1
-      if(bID) then
-        tO[iO] = vE:EntIndex()
+      if(bID) then tO[iO] = vE:EntIndex()
       else tO[iO] = vE end
-    end; iD = iD + 1
+    end
   end; return tO
 end
 
@@ -625,42 +622,42 @@ end
 --[[ **************************** FILTER COPY **************************** ]]
 
 __e2setcost(3)
-e2function ftrace ftrace:useFilterUnit(ftrace oT)
+e2function ftrace ftrace:useUnit(ftrace oT)
   if(not this) then return nil end
   if(not oT) then return this end
-  this.mFlt.Enu = oT.mFlt.Enu; return this
+  this.mTrI.filter = oT.mFlt.Enu; return this
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:useFilterArray(ftrace oT)
+e2function ftrace ftrace:useArray(ftrace oT)
   if(not this) then return nil end
   if(not oT) then return this end
-  this.mFlt.Ear = oT.mFlt.Ear; return this
+  this.mTrI.filter = oT.mFlt.Ear; return this
+end
+
+__e2setcost(3)
+e2function ftrace ftrace:useAction(ftrace oT)
+  if(not this) then return nil end
+  if(not oT) then return this end
+  this.mTrI.filter = oT.mFlt.Fnc; return this
 end
 
 __e2setcost(12)
-e2function ftrace ftrace:cpyFilterArray(ftrace oT)
+e2function ftrace ftrace:cpyArray(ftrace oT)
   if(not this) then return nil end
   if(not oT) then return this end
   return putFilterEar(this, oT.mFlt.Ear, false, false)
 end
 
-__e2setcost(3)
-e2function ftrace ftrace:useFilterAction(ftrace oT)
-  if(not this) then return nil end
-  if(not oT) then return this end
-  this.mFlt.Fnc = oT.mFlt.Fnc; return this
-end
-
 __e2setcost(12)
-e2function ftrace ftrace:cpyFilterAction(ftrace oT)
+e2function ftrace ftrace:cpyAction(ftrace oT)
   return putFilterFnc(this, oT.mFnc)
 end
 
 --[[ **************************** FILTER CHANGE **************************** ]]
 
 __e2setcost(3)
-e2function string ftrace:getFilterMode()
+e2function string ftrace:getMode()
   return getFilterMode(this)
 end
 
@@ -671,20 +668,19 @@ e2function ftrace ftrace:remFilter()
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:setFilterArray()
+e2function ftrace ftrace:useArray()
   if(not this) then return nil end
   this.mTrI.filter = this.mFlt.Ear; return this
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:setFilterUnit()
+e2function ftrace ftrace:useUnit()
   if(not this) then return nil end
-  if(not isValid(vE)) then return nil end
   this.mTrI.filter = this.mFlt.Enu; return this
 end
 
 __e2setcost(3)
-e2function ftrace ftrace:setFilterAction()
+e2function ftrace ftrace:useAction()
   if(not this) then return nil end
   this.mTrI.filter = this.mFlt.Fnc; return this
 end
@@ -707,7 +703,6 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:remUnit()
   if(not this) then return nil end
-  if(not isValid(vE)) then return this end
   this.mFlt.Enu = nil; return this
 end
 
@@ -1560,4 +1555,3 @@ __e2setcost(15)
 e2function ftrace ftrace:dumpItem(string nT, string sN)
   return dumpTracer(this, sN, nT)
 end
-

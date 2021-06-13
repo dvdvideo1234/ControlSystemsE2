@@ -15,19 +15,19 @@ if(first() || dupefinished())
         # A:putActionSkip("GetModel", "models/props_c17/oildrum001.mdl")
         A:putActionOnly("GetClass","prop_physics")
         A:putArrayID(123)
-        # A:setFilterUnit()
-        A:setFilterAction()
+        # A:setUnit()
+        A:useAction()
         A:dumpItem("A")
         print(1, "\n")
     B = A:getCopy():putActionSkipEnt(E):putActionOnly("GetClass","prop_physics")
-        B:setFilterAction():putActionSkip("GetModel", 1)
+        B:useAction():putActionSkip("GetModel", 1)
 
     holoCreate(1,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(1,vec(255,0,0))
     holoCreate(2,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(2,vec(0,255,0))
     holoCreate(3,vec(0,0,0),0.1 * vec(1,1,1))  holoColor(3,vec(0,0,255))
 }
 
-# print(A:getEntity():model())
+print(A:getEntity():model())
 
 A:smpLocal()
 
