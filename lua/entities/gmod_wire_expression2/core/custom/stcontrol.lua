@@ -123,8 +123,9 @@ end
 local function resState(oStCon)
   if(not oStCon) then return nil end
   oStCon.mErrO, oStCon.mErrN = 0, 0 -- Reset the error
-  oStCon.mvCon, oStCon.meInt, oStCon.meDif = 0, true, true -- Control value and integral enabled
-  oStCon.mvP, oStCon.mvI, oStCon.mvD, oStCon.meZcx = 0, 0, 0, false -- Term values
+  oStCon.mvCon, oStCon.meInt, oStCon.meDif = 0, true, true -- Control value and term enabled
+  oStCon.meZcx, oStCon.mnZcm = false, 0 -- Zero cross detection and margin
+  oStCon.mvP, oStCon.mvI, oStCon.mvD = 0, 0, 0 -- Terms actual values
   oStCon.mTimN = CurTime(); oStCon.mTimO = oStCon.mTimN; -- Update clock
   return oStCon
 end
@@ -168,6 +169,7 @@ local function dumpController(oStCon, sNam, sPos)
   logStatus("   EInt: "..tostring(oStCon.meInt), oChip, nP)
   logStatus("   EDif: "..tostring(oStCon.meDif), oChip, nP)
   logStatus("   EZcx: "..tostring(oStCon.meZcx), oChip, nP)
+  logStatus("   MZcx: "..tostring(oStCon.mnZcm), oChip, nP)
   return oStCon -- The dump method
 end
 
@@ -188,26 +190,48 @@ local function conProcess(oStCon, nRef, nOut)
     local errNw = (oStCon.mbInv and (nOut - nRef) or (nRef - nOut))
     oStCon.mErrO = errPs; oStCon.mErrN = errNw -- Sync internal state
     oStCon.mTimO = oStCon.mTimN; oStCon.mTimN = CurTime() -- Sync the time
+    -- Time delta is being reset when an input is triggered
     local timDt = (oStCon.mnTo and oStCon.mnTo or (oStCon.mTimN - oStCon.mTimO))
     -- Does not get affected by the time and just multiplies. Not approximated
     if(oStCon.mkP > 0) then
       oStCon.mvP = getValue(oStCon.mkP, errNw, oStCon.mpP)
     end
     -- Direct approximation with error sampling average for calculating the integral term
-    if((oStCon.mkI > 0) and oStCon.meInt and (timDt > 0)) then
-      if(oStCon.meZcx and (getSign(errNw) ~= getSign(errPs))) then
-        oStCon.mvI = 0 -- Reset on zero for avoid having the same value in the other direction
-      else -- If the flag is not set and an error delta is present calculate the integral area
-        local arInt = (errNw + errPs) * timDt -- Integral error area
-        oStCon.mvI = getValue(oStCon.mkI * timDt, arInt, oStCon.mpI) + oStCon.mvI
+    if(oStCon.mkI > 0) then -- Integral term is used and must be updated in realtime
+      if(oStCon.meInt and timDt > 0) then -- If integration is enabled it continues to integrate
+        if(oStCon.meZcx) then -- Calculate and compare the sign only when zero crossing is enabled
+          if(getSign(errNw) ~= getSign(errPs)) then -- Graph crosses zero when signs are different
+            if(oStCon.mnZcm > 0) then -- Clear integral only when the delta bigger than margin
+              local arDif = (errNw - errPs) / timDt -- Error derivative slope dE/dT
+              if(math.abs(arDif) > oStCon.mnZcm) then -- Derivative is bigger than margin
+                oStCon.mvI = 0 -- Reset the integral term when derivative is bigger than margin
+              else -- Otherwise keep integrating like nothing ever happened
+                local arInt = (errNw + errPs) * timDt -- Integral error area
+                oStCon.mvI = getValue(oStCon.mkI * timDt, arInt, oStCon.mpI) + oStCon.mvI
+              end -- This will keep integrating when derivative is less than margin
+            else -- When error delta margin is not defined consider it being not used
+              oStCon.mvI = 0 -- Reset on zero for avoid having the same value in the other direction
+            end -- Both condition need the sign to be checked so this is done with zero cross enabled
+          else -- Signs are equal the process is below or above the reference. Continue
+            local arInt = (errNw + errPs) * timDt -- Integral error area
+            oStCon.mvI = getValue(oStCon.mkI * timDt, arInt, oStCon.mpI) + oStCon.mvI
+          end -- Check the signs only when zero crossing is enabled
+        else -- If the flag is not set and an error delta is present calculate the integral area
+          local arInt = (errNw + errPs) * timDt -- Integral error area
+          oStCon.mvI = getValue(oStCon.mkI * timDt, arInt, oStCon.mpI) + oStCon.mvI
+        end
       end
+    else
+      oStCon.mvI = 0
     end
     -- Direct approximation for calculating the derivative term
-    if((oStCon.mkD > 0) and (errNw ~= errPs) and oStCon.meDif and (timDt > 0)) then
-      local arDif = (errNw - errPs) / timDt -- Error derivative slope dE/dT
-      oStCon.mvD = getValue(oStCon.mkD * timDt, arDif, oStCon.mpD)
+    if(oStCon.mkD > 0 and errNw ~= errPs) then
+      if(oStCon.meDif and timDt > 0) then -- Derivative term is used must be updated in realtime
+        local arDif = (errNw - errPs) / timDt -- Error derivative slope dE/dT
+        oStCon.mvD = getValue(oStCon.mkD * timDt, arDif, oStCon.mpD)
+      end -- Derivative part is not updated when it is not enabled
     else -- Reset the derivative as there is no slope to be used
-      oStCon.mvD = 0
+      oStCon.mvD = 0 -- Derivative parth is not used so reset term
     end
     oStCon.mvCon = oStCon.mvP + oStCon.mvI + oStCon.mvD -- Calculate the control signal
     if(satD and oStCon.mvCon < satD) then -- Saturate lower limit
@@ -422,7 +446,8 @@ local function newController(oChip, nTo)
   oStCon.mkP, oStCon.mkI, oStCon.mkD = 0, 0, 0 -- P, I and D term gains
   oStCon.mpP, oStCon.mpI, oStCon.mpD = 1, 1, 1 -- Raise the error to power of that much
   oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn, oStCon.mbMan = false, false, false, false
-  oStCon.mvMan, oStCon.mChip, oStCon.meZcx = 0, oChip, false -- Configure manual mode and store indexing
+  -- Configure manual mode and store indexing. Setup zero crossing for integral
+  oStCon.mvMan, oStCon.mChip, oStCon.meZcx, oStCon.mnZcm = 0, oChip, false, 0
   return oStCon -- Return the created controller object
 end
 
@@ -974,6 +999,18 @@ __e2setcost(3)
 e2function number stcontrol:isZeroCross()
   if(not this) then return 0 end
   return (this.meZcx and 1 or 0)
+end
+
+__e2setcost(3)
+e2function stcontrol stcontrol:setZeroCross(number nM)
+  if(not this) then return nil end
+  this.mnZcm = (nM > 0) and nM or 0; return this
+end
+
+__e2setcost(3)
+e2function number stcontrol:getZeroCross()
+  if(not this) then return 0 end
+  return this.mnZcm
 end
 
 __e2setcost(3)

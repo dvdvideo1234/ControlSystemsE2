@@ -1,6 +1,6 @@
 @name adaptive fiter OOP
-@inputs But RF
-@outputs PV CN TT EE RR
+@inputs But RF BI BD
+@outputs PV CN TT EE RR P I D ZM
 @persist T:ftrace E:entity C:stcontrol V2:vector2
 @trigger
 @model models/props_phx/construct/metal_wire1x1x1.mdl
@@ -18,6 +18,7 @@ if(first() || dupefinished())
     T:useAction() # Otherwise no filter is used
     C = newStControl():setGain(1700, 6800, 7800):setWindup(-9000,9000):setPowerPI(V2):dumpItem("TEST")
     E:setMass(250)
+    #C:setIsZeroCross(1):setZeroCross(0)
 }
 
 #C:setIsDerivative(0)
@@ -30,9 +31,12 @@ TT = C:getTimeDelta()
 
 E:applyForce(CN * vec(0,0,1))
 
-EE = C:getErrorNow()
-RR = C:getTimeRatio()
-BB = C:getTimeBench()
-P = C:getControlTermP()
-I = C:getControlTermI()
-D = C:getControlTermD()
+EE = C:getErrorNow()        # The current error
+RR = C:getTimeRatio()       # How much of the tick is used
+BB = C:getTimeBench()       # Process benchmark time
+P = C:getControlTermP()     # Value of P-term
+I = C:getControlTermI()     # Value of I-term
+D = C:getControlTermD()     # Value of D-term
+ZM = C:getErrorDelta() / TT # Used to setup zero cross margin
+BI = C:setIsIntegral(BI):isIntegral()
+BD = C:setIsDerivative(BI):isDerivative()
