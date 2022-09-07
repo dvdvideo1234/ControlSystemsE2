@@ -138,45 +138,44 @@ end, varDefPrint:GetName().."_call")
 --[[ **************************** WRAPPERS **************************** ]]
 
 local function convertDirLocal(oFTrc, vE, vA)
-  if(not oFTrc) then return {0,0,0} end
+  if(not oFTrc) then return Vector(0,0,0) end
   local oD, oE = oFTrc.mDir, (vE or oFTrc.mEnt)
-  if(not (isValid(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
-  local oA = Angle(); if(vA) then
-    oA:SetUnpacked(vA[1], vA[2], vA[3])
-  else oA:Set(oE:GetAngles()) end; local oV = Vector(oD)
-  return {oV:Dot(oA:Forward()), -oV:Dot(oA:Right()), oV:Dot(oA:Up())}
+  if(not (isValid(oE) or vA)) then return Vector(oD) end
+  local oA, oV = Angle(), Vector(oD)
+  if(vA) then oA:Set(vA) else oA:Set(oE:GetAngles()) end
+  local x =  oV:Dot(oA:Forward())
+  local y = -oV:Dot(oA:Right())
+  local z =  oV:Dot(oA:Up())
+  oV:SetUnpacked(x, y, z); return oV
 end -- Gmod +Y is the left direction
 
 local function convertDirWorld(oFTrc, vE, vA)
-  if(not oFTrc) then return {0,0,0} end
+  if(not oFTrc) then return Vector(0,0,0) end
   local oD, oE = oFTrc.mDir, (vE or oFTrc.mEnt)
-  if(not (isValid(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
-  local oA = Angle(); if(vA) then
-    oA:SetUnpacked(vA[1], vA[2], vA[3])
-  else oA:Set(oE:GetAngles()) end; local oV = Vector(oD)
-  oV:Rotate(oA); return {oV[1], oV[2], oV[3]}
+  if(not (isValid(oE) or vA)) then return Vector(oD) end
+  local oA, oV = Angle(), Vector(oD)
+  if(vA) then oA:Set(vA) else oA:Set(oE:GetAngles()) end
+  oV:Rotate(oA); return oV
 end
 
 local function convertOrgEnt(oFTrc, sF, vE)
-  if(not oFTrc) then return {0,0,0} end
-  if(not gtConvEnab[sF or gsZeroStr]) then return {0,0,0} end
+  if(not oFTrc) then return Vector(0,0,0) end
+  if(not gtConvEnab[sF or gsZeroStr]) then return Vector(0,0,0) end
   local oO, oE = oFTrc.mPos, (vE or oFTrc.mEnt)
-  if(not isValid(oE)) then return {oO[1], oO[2], oO[3]} end
-  local oV = Vector(oO); oV:Set(oE[sF](oE, oV))
-  return {oV:Unpack()}
+  if(not isValid(oE)) then return Vector(oO) end
+  local oV = Vector(oO); oV:Set(oE[sF](oE, oV)); return oV
 end
 
 local function convertOrgUCS(oFTrc, sF, vP, vA)
-  if(not oFTrc) then return {0,0,0} end
-  if(not gtConvEnab[sF or gsZeroStr]) then return {0,0,0} end
+  if(not oFTrc) then return Vector(0,0,0) end
+  if(not gtConvEnab[sF or gsZeroStr]) then return Vector(0,0,0) end
   local oO, oE = oFTrc.mPos, (vE or oFTrc.mEnt)
-  if(not isValid(oE)) then return {oO[1], oO[2], oO[3]} end
+  if(not isValid(oE)) then return Vector(oO) end
   local oV, oA = Vector(oO), Angle()
   local uP, uA = gvTransform, gaTransform
-  uP:SetUnpacked(vP[1], vP[2], vP[3])
-  uA:SetUnpacked(vA[1], vA[2], vA[3])
+  uP:Set(vP); uA:Set(vA)
   local vN, aN = gtConvEnab[sF](oV, oA, uP, uA); oV:Set(vN)
-  return {oV:Unpack()}
+  return oV
 end
 
 local function vecMultiply(vV, nX, nY, nZ)
@@ -457,10 +456,8 @@ local function newTracer(oChip, vEnt, vPos, vDir, nLen)
   oFTrc.mFnc.Ent = {SKIP = {}, ONLY = {}, TYPE = type(eChip)} -- No entities in ONLY or SKIP by default
   if(isValid(vEnt)) then oFTrc.mEnt = vEnt else oFTrc.mEnt = nil end -- Make sure the entity is cleared
   oFTrc.mPos, oFTrc.mDir = Vector(), Vector(0, 0, 1)
-  if(vPos) then -- Local tracer position the trace starts from
-    oFTrc.mPos:SetUnpacked(vPos[1], vPos[2], vPos[3]) end
-  if(vDir and ncDir > 0) then -- Local tracer direction to read the data from
-    oFTrc.mDir:SetUnpacked(vDir[1], vDir[2], vDir[3]) end
+  if(vPos) then oFTrc.mPos:Set(vPos) end -- Local tracer position the trace starts from
+  if(vDir and ncDir > 0) then oFTrc.mDir:Set(vDir) end -- Local tracer direction to read
   -- How long the flash tracer length will be. Must be positive
   oFTrc.mLen = (ncLen == 0 and ncDir or ncLen)
   oFTrc.mLen = math.Clamp(oFTrc.mLen, -gnMaxBeam, gnMaxBeam)
@@ -1005,8 +1002,7 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:rayMove(vector vV)
   if(not this) then return nil end
-  local vD = Vector(vV[1], vV[2], vV[3])
-  this.mPos:Add(vD); return this
+  this.mPos:Add(vV); return this
 end
 
 __e2setcost(3)
@@ -1019,15 +1015,14 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:rayMove(vector vV, number nL)
   if(not this) then return nil end
-  local vD = Vector(vV[1], vV[2], vV[3])
-  vD:Normalize(); vD:Mul(nL); this.mPos:Add(vD); return this
+  local vD = vV:GetNormalized()
+  vD:Mul(nL); this.mPos:Add(vD); return this
 end
 
 __e2setcost(3)
 e2function ftrace ftrace:rayAmend(vector vV)
   if(not this) then return nil end
-  local vD = Vector(vV[1], vV[2], vV[3])
-  this.mDir:Add(vD); return this
+  this.mDir:Add(vV); return this
 end
 
 __e2setcost(3)
@@ -1040,8 +1035,8 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:rayAmend(vector vV, number nL)
   if(not this) then return nil end
-  local vD = Vector(vV[1], vV[2], vV[3])
-  vD:Normalize(); vD:Mul(nL); this.mDir:Add(vD); return this
+  local vD = vV:GetNormalized()
+  vD:Mul(nL); this.mDir:Add(vD); return this
 end
 
 __e2setcost(3)
@@ -1054,7 +1049,7 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:rayMul(vector vV)
   if(not this) then return nil end
-  vecMultiply(this.mDir, vV[1], vV[2], vV[3])
+  vecMultiply(this.mDir, vV:Unpack())
   this.mLen = this.mDir:Length(); return this
 end
 
@@ -1075,7 +1070,7 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:rayDiv(vector vV)
   if(not this) then return nil end
-  vecDivide(this.mDir, vV[1], vV[2], vV[3])
+  vecDivide(this.mDir, vV:Unpack())
   this.mLen = this.mDir:Length(); return this
 end
 
@@ -1089,7 +1084,7 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:rayAim(vector vV)
   if(not this) then return nil end
-  local vD = Vector(vV[1], vV[2], vV[3])
+  local vD = Vector(vV)
   vD:Sub(this.mPos); vD:Normalize()
   vD:Mul(this.mLen); this.mDir:Set(vD)
   return this
@@ -1157,8 +1152,8 @@ end
 
 __e2setcost(3)
 e2function vector ftrace:getPos()
-  if(not this) then return {0,0,0} end
-  return {this.mPos:Unpack()}
+  if(not this) then return Vector(0,0,0) end
+  return Vector(this.mPos)
 end
 
 __e2setcost(3)
@@ -1201,7 +1196,7 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:setPos(vector vO)
   if(not this) then return nil end
-  this.mPos:SetUnpacked(vO[1], vO[2], vO[3])
+  this.mPos:Set(vO)
   return this
 end
 
@@ -1215,7 +1210,7 @@ end
 __e2setcost(3)
 e2function vector ftrace:getDir()
   if(not this) then return nil end
-  return {this.mDir:Unpack()}
+  return Vector(this.mDir)
 end
 
 __e2setcost(3)
@@ -1259,9 +1254,8 @@ end
 __e2setcost(3)
 e2function ftrace ftrace:setDir(vector vD)
   if(not this) then return nil end
-  this.mDir:SetUnpacked(vD[1], vD[2], vD[3])
-  this.mDir:Normalize(); this.mDir:Mul(this.mLen)
-  return this
+  this.mDir:Set(vD); this.mDir:Normalize()
+  this.mDir:Mul(this.mLen); return this
 end
 
 __e2setcost(3)
@@ -1312,16 +1306,14 @@ end
 
 __e2setcost(3)
 e2function vector ftrace:getStart()
-  if(not this) then return {0,0,0} end
-  local vT = this.mTrI.start
-  return {vT:Unpack()}
+  if(not this) then return Vector(0,0,0) end
+  return Vector(this.mTrI.start)
 end
 
 __e2setcost(3)
 e2function vector ftrace:getStop()
-  if(not this) then return {0,0,0} end
-  local vT = this.mTrI.endpos
-  return {vT:Unpack()}
+  if(not this) then return Vector(0,0,0) end
+  return Vector(this.mTrI.endpos)
 end
 
 __e2setcost(12)
@@ -1452,23 +1444,23 @@ end
 
 __e2setcost(8)
 e2function vector ftrace:getHitPos()
-  if(not this) then return {0,0,0} end
+  if(not this) then return Vector(0,0,0) end
   local trV = this.mTrO.HitPos
-  return (trV and {trV:Unpack()} or {0,0,0})
+  return (trV and Vector(trV) or Vector(0,0,0))
 end
 
 __e2setcost(8)
 e2function vector ftrace:getHitNormal()
-  if(not this) then return {0,0,0} end
+  if(not this) then return Vector(0,0,0) end
   local trV = this.mTrO.HitNormal
-  return (trV and {trV:Unpack()} or {0,0,0})
+  return (trV and Vector(trV) or Vector(0,0,0))
 end
 
 __e2setcost(8)
 e2function vector ftrace:getNormal()
-  if(not this) then return {0,0,0} end
+  if(not this) then return Vector(0,0,0) end
   local trV = this.mTrO.Normal
-  return (trV and {trV:Unpack()} or {0,0,0})
+  return (trV and Vector(trV) or Vector(0,0,0))
 end
 
 __e2setcost(8)
@@ -1480,9 +1472,9 @@ end
 
 __e2setcost(8)
 e2function vector ftrace:getStartPos()
-  if(not this) then return {0,0,0} end
+  if(not this) then return Vector(0,0,0) end
   local trV = this.mTrO.StartPos
-  return (trV and {trV:Unpack()} or {0,0,0})
+  return (trV and Vector(trV) or Vector(0,0,0))
 end
 
 __e2setcost(3)
