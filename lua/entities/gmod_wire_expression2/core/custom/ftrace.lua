@@ -138,7 +138,7 @@ end, varDefPrint:GetName().."_call")
 --[[ **************************** WRAPPERS **************************** ]]
 
 local function convertDirLocal(oFTrc, vE, vA)
-  if(not oFTrc) then return Vector(0,0,0) end
+  if(not oFTrc) then return Vector() end
   local oD, oE = oFTrc.mDir, (vE or oFTrc.mEnt)
   if(not (isValid(oE) or vA)) then return Vector(oD) end
   local oA, oV = Angle(), Vector(oD)
@@ -150,7 +150,7 @@ local function convertDirLocal(oFTrc, vE, vA)
 end -- Gmod +Y is the left direction
 
 local function convertDirWorld(oFTrc, vE, vA)
-  if(not oFTrc) then return Vector(0,0,0) end
+  if(not oFTrc) then return Vector() end
   local oD, oE = oFTrc.mDir, (vE or oFTrc.mEnt)
   if(not (isValid(oE) or vA)) then return Vector(oD) end
   local oA, oV = Angle(), Vector(oD)
@@ -159,16 +159,16 @@ local function convertDirWorld(oFTrc, vE, vA)
 end
 
 local function convertOrgEnt(oFTrc, sF, vE)
-  if(not oFTrc) then return Vector(0,0,0) end
-  if(not gtConvEnab[sF or gsZeroStr]) then return Vector(0,0,0) end
+  if(not oFTrc) then return Vector() end
+  if(not gtConvEnab[sF or gsZeroStr]) then return Vector() end
   local oO, oE = oFTrc.mPos, (vE or oFTrc.mEnt)
   if(not isValid(oE)) then return Vector(oO) end
   local oV = Vector(oO); oV:Set(oE[sF](oE, oV)); return oV
 end
 
 local function convertOrgUCS(oFTrc, sF, vP, vA)
-  if(not oFTrc) then return Vector(0,0,0) end
-  if(not gtConvEnab[sF or gsZeroStr]) then return Vector(0,0,0) end
+  if(not oFTrc) then return Vector() end
+  if(not gtConvEnab[sF or gsZeroStr]) then return Vector() end
   local oO, oE = oFTrc.mPos, (vE or oFTrc.mEnt)
   if(not isValid(oE)) then return Vector(oO) end
   local oV, oA = Vector(oO), Angle()
@@ -1152,7 +1152,7 @@ end
 
 __e2setcost(3)
 e2function vector ftrace:getPos()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   return Vector(this.mPos)
 end
 
@@ -1306,13 +1306,13 @@ end
 
 __e2setcost(3)
 e2function vector ftrace:getStart()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   return Vector(this.mTrI.start)
 end
 
 __e2setcost(3)
 e2function vector ftrace:getStop()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   return Vector(this.mTrI.endpos)
 end
 
@@ -1444,23 +1444,23 @@ end
 
 __e2setcost(8)
 e2function vector ftrace:getHitPos()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   local trV = this.mTrO.HitPos
-  return (trV and Vector(trV) or Vector(0,0,0))
+  return (trV and Vector(trV) or Vector())
 end
 
 __e2setcost(8)
 e2function vector ftrace:getHitNormal()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   local trV = this.mTrO.HitNormal
-  return (trV and Vector(trV) or Vector(0,0,0))
+  return (trV and Vector(trV) or Vector())
 end
 
 __e2setcost(8)
 e2function vector ftrace:getNormal()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   local trV = this.mTrO.Normal
-  return (trV and Vector(trV) or Vector(0,0,0))
+  return (trV and Vector(trV) or Vector())
 end
 
 __e2setcost(8)
@@ -1472,9 +1472,9 @@ end
 
 __e2setcost(8)
 e2function vector ftrace:getStartPos()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   local trV = this.mTrO.StartPos
-  return (trV and Vector(trV) or Vector(0,0,0))
+  return (trV and Vector(trV) or Vector())
 end
 
 __e2setcost(3)

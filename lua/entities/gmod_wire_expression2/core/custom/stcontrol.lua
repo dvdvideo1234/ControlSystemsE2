@@ -607,7 +607,7 @@ end
 
 __e2setcost(3)
 e2function vector stcontrol:getGain()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   return Vector(this.mkP, this.mkI, this.mkD)
 end
 
@@ -840,7 +840,7 @@ end
 
 __e2setcost(3)
 e2function vector stcontrol:getPower()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   return Vector(this.mpP, this.mpI, this.mpD)
 end
 
@@ -1090,7 +1090,7 @@ end
 
 __e2setcost(3)
 e2function vector stcontrol:getControlTerm()
-  if(not this) then return Vector(0,0,0) end
+  if(not this) then return Vector() end
   return Vector(this.mvP, this.mvI, this.mvD)
 end
 
