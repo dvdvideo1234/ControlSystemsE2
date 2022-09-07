@@ -52,7 +52,6 @@ local function isValid(vE, vT)
   return (vE and vE.IsValid and vE:IsValid())
 end
 
-
 local function getSign(nV)
   return ((nV > 0 and 1) or (nV < 0 and -1) or 0)
 end
@@ -897,7 +896,6 @@ e2function vector2 stcontrol:getPowerID()
   if(not this) then return {0,0} end
   return {this.mpI, this.mpD}
 end
-
 
 __e2setcost(3)
 e2function number stcontrol:getErrorNow()
