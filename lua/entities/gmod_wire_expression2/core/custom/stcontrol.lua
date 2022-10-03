@@ -46,8 +46,10 @@ gtPrintName["CENTER" ] = HUD_PRINTCENTER
 
 --[[ **************************** PRIMITIVES **************************** ]]
 
-local function isValid(vE)
-  return (vE and vE:IsValid())
+local function isValid(vE, vT)
+  if(vT) then local sT = tostring(vT or "")
+    if(sT ~= type(vE)) then return false end end
+  return (vE and vE.IsValid and vE:IsValid())
 end
 
 local function getSign(nV)
@@ -558,7 +560,7 @@ end
 
 __e2setcost(7)
 e2function stcontrol stcontrol:setGain(vector vV)
-  return setGains(this, vV[1], vV[2], vV[3])
+  return setGains(this, vV:Unpack())
 end
 
 __e2setcost(7)
@@ -604,8 +606,8 @@ end
 
 __e2setcost(3)
 e2function vector stcontrol:getGain()
-  if(not this) then return {0,0,0} end
-  return {this.mkP, this.mkI, this.mkD}
+  if(not this) then return Vector() end
+  return Vector(this.mkP, this.mkI, this.mkD)
 end
 
 __e2setcost(3)
@@ -826,7 +828,7 @@ end
 
 __e2setcost(8)
 e2function stcontrol stcontrol:setPower(vector vV)
-  return setPower(this, vV[1], vV[2], vV[3])
+  return setPower(this, vV:Unpack())
 end
 
 __e2setcost(3)
@@ -837,8 +839,8 @@ end
 
 __e2setcost(3)
 e2function vector stcontrol:getPower()
-  if(not this) then return {0,0,0} end
-  return {this.mpP, this.mpI, this.mpD}
+  if(not this) then return Vector() end
+  return Vector(this.mpP, this.mpI, this.mpD)
 end
 
 __e2setcost(3)
@@ -894,7 +896,6 @@ e2function vector2 stcontrol:getPowerID()
   if(not this) then return {0,0} end
   return {this.mpI, this.mpD}
 end
-
 
 __e2setcost(3)
 e2function number stcontrol:getErrorNow()
@@ -1087,8 +1088,8 @@ end
 
 __e2setcost(3)
 e2function vector stcontrol:getControlTerm()
-  if(not this) then return {0,0,0} end
-  return {this.mvP, this.mvI, this.mvD}
+  if(not this) then return Vector() end
+  return Vector(this.mvP, this.mvI, this.mvD)
 end
 
 __e2setcost(3)
