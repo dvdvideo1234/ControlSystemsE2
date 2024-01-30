@@ -233,7 +233,7 @@ local function conProcess(oStCon, nRef, nOut)
         oStCon.mvD = getValue(oStCon.mkD * timDt, arDif, oStCon.mpD)
       end -- Derivative part is not updated when it is not enabled
     else -- Reset the derivative as there is no slope to be used
-      oStCon.mvD = 0 -- Derivative parth is not used so reset term
+      oStCon.mvD = 0 -- Derivative path is not used so reset term
     end
     oStCon.mvCon = oStCon.mvP + oStCon.mvI + oStCon.mvD -- Calculate the control signal
     if(satD and oStCon.mvCon < satD) then -- Saturate lower limit

@@ -80,7 +80,7 @@ end
 
 --[[
  * Picks the table when has values. Otherwise nil
- * Empty aggument is nil as nothing to be done
+ * Empty argument is nil as nothing to be done
  * tT > The table to checked and picked (table or nil)
 ]]
 local function pickTable(tT)
@@ -90,7 +90,7 @@ end
 
 --[[
  * Outputs status messages in various places
- * sMsg  > Messave as any value type
+ * sMsg  > Message as any value type
  * oChip > Reference to an E2 chip
  * nPos  > Output location `HUD_%`
 ]]
@@ -112,10 +112,10 @@ end
 ]]
 local function convertArrayKeys(tA)
   if(not tA) then return nil end
-  for ID = 1, #tA do -- Convert the table from array to hash bools
+  for ID = 1, #tA do -- Convert the table from array to hash bool
     local key = tostring(tA[ID] or ""):gsub("%s+", "")
     if(not gtEmptyVar[key]) then tA[key] = true end; tA[ID] = nil
-  end; return pickTable(tA) -- Write empty velue when table is empty
+  end; return pickTable(tA) -- Write empty value when table is empty
 end
 
 --[[ **************************** CALLBACKS **************************** ]]
@@ -369,7 +369,7 @@ local function putFilterFnc(oFTrc, tData)
     if(vD.ONLY) then for key, val in pairs(vD.ONLY) do
       setFncFilter(oFTrc, vD.CALL, "ONLY", key, true) end end
   end
-  -- Transsfer referencies from the entity array
+  -- Transfer references from the entity array
   for key, val in pairs(tData.Ent.SKIP) do
     oFTrc.mFnc.Ent.SKIP[key] = val end
   for key, val in pairs(tData.Ent.ONLY) do
@@ -396,11 +396,11 @@ end
 local function getFilterMode(oFTrc)
   if(not oFTrc) then return "XX" end -- Unavailable
   local tF = oFTrc.mTrI.filter -- Filter table reference
-  if    (tF == nil) then return "NA" -- No filter is currenttly set
+  if    (tF == nil) then return "NA" -- No filter is currently set
   elseif(tF == oFTrc.mFlt.Ear) then return "AR" -- Entity index array
   elseif(tF == oFTrc.mFlt.Fnc) then return "FN" -- Function routine
   elseif(tF == oFTrc.mFlt.Enu) then return "EU" -- Entity unit
-  end; return "TS" -- Transfered settings form another instance
+  end; return "TS" -- Transferred settings form another instance
 end
 
 local function dumpTracer(oFTrc, sNam, sPos)
@@ -429,9 +429,9 @@ local function dumpTracer(oFTrc, sNam, sPos)
   end
   local tF = pickTable(oFTrc.mFlt.Ear)
   if(tF) then
-    local nF = oFTrc.mFlt.Size -- Total amaunt of entities in the array
-    local nL = tostring(nF):len() -- Aligment length for the key index
-    local fF = ("%"..nL.."d") -- Generate format string for aligment
+    local nF = oFTrc.mFlt.Size -- Total amount of entities in the array
+    local nL = tostring(nF):len() -- Alignment length for the key index
+    local fF = ("%"..nL.."d") -- Generate format string for alignment
     logStatus(gsFormEar:format(nF, nL), oChip, nP)
     for iF = 1, nF do local vE, sC, iC = tF[iF], gsNotAvStr, 0
       if(isValid(vE)) then sC, iC = vE:GetClass(), vE:EntIndex() end
@@ -472,13 +472,13 @@ local function newTracer(oChip, vEnt, vPos, vDir, nLen)
     local nS, vV = getFncStatus(tFnc.Ent, oEnt) -- Check the entity
     if(nS > 1) then return vV end -- Entity found or skipped return
     if(tFnc.Size > 0) then -- Swipe trough the other lists available
-      for IH = 1, tFnc.Size do local vFnc = tFnc[IH] -- Read list conf
+      for IH = 1, tFnc.Size do local vFnc = tFnc[IH] -- Read list config
         local vC = convertFncValue(oEnt, vFnc.CALL) -- Extract entity value
         local nS, vV = getFncStatus(vFnc, vC) -- Check extracted value
         if(nS > 1) then return vV end -- Option skipped or selected return
       end -- All options are checked then trace hit normally routine
     end; return true -- Finally we register the trace hit enabled
-  end -- Defines a general universal filter finction may be slower
+  end -- Defines a general universal filter function may be slower
   oFTrc.mFlt.Enu  = nil -- Direct entity filter place holder unit
   oFTrc.mFlt.Ear  = {} -- Direct entity filter place holder array
   oFTrc.mFlt.Size = 0 -- Direct entity filter place holder size
