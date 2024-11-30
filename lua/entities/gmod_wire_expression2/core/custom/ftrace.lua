@@ -39,7 +39,7 @@ local gtEmptyVar  = {["#empty"]=true}; gtEmptyVar[gsZeroStr] = true -- Variable 
 local gsVarPrefx  = "wire_expression2_ftrace" -- This is used for variable prefix
 local gtBoolToNum = {[true]=1,[false]=0} -- This is used to convert between GLua boolean and wire boolean
 local gtMethList  = {} -- Place holder for blacklist and console variables prefix
-local gtConvEnab  = {["LW"] = LocalToWorld, ["WL"] = WorldToLocal} -- Coordinate translation list
+local gtConvUCS  = {["LWG"] = LocalToWorld, ["WLG"] = WorldToLocal, ["LWE"] = "LocalToWorld", ["WLE"] = "WorldToLocal"}
 local varMethSkip = CreateConVar(gsVarPrefx.."_skip", gsZeroStr, gnServerControled, "FTrace entity black listed methods")
 local varMethOnly = CreateConVar(gsVarPrefx.."_only", gsZeroStr, gnServerControled, "FTrace entity white listed methods")
 local varEnStatus = CreateConVar(gsVarPrefx.."_enst",  0, gnIndependentUsed, "FTrace status output messages")
@@ -160,22 +160,21 @@ end
 
 local function convertOrgEnt(oFTrc, sF, vE)
   if(not oFTrc) then return Vector() end
-  if(not gtConvEnab[sF or gsZeroStr]) then return Vector() end
+  local sM = gtConvUCS[sF or gsZeroStr]
+  if(not sM) then return Vector() end
   local oO, oE = oFTrc.mPos, (vE or oFTrc.mEnt)
   if(not isValid(oE)) then return Vector(oO) end
-  local oV = Vector(oO); oV:Set(oE[sF](oE, oV)); return oV
+  local oV = Vector(oO); oV:Set(oE[sM](oE, oV)); return oV
 end
 
 local function convertOrgUCS(oFTrc, sF, vP, vA)
   if(not oFTrc) then return Vector() end
-  if(not gtConvEnab[sF or gsZeroStr]) then return Vector() end
+  if(not gtConvUCS[sF or gsZeroStr]) then return Vector() end
   local oO, oE = oFTrc.mPos, (vE or oFTrc.mEnt)
   if(not isValid(oE)) then return Vector(oO) end
   local oV, oA = Vector(oO), Angle()
-  local uP, uA = gvTransform, gaTransform
-  uP:Set(vP); uA:Set(vA)
-  local vN, aN = gtConvEnab[sF](oV, oA, uP, uA); oV:Set(vN)
-  return oV
+  local uP, uA = gvTransform, gaTransform; uP:Set(vP); uA:Set(vA)
+  local vN, aN = gtConvUCS[sF](oV, oA, uP, uA); oV:Set(vN); return oV
 end
 
 local function vecMultiply(vV, nX, nY, nZ)
@@ -450,7 +449,7 @@ end
 ]]
 local function newTracer(oChip, vEnt, vPos, vDir, nLen)
   local eChip = oChip.entity; if(not isValid(eChip)) then
-    return logStatus("Entity invalid", oChip, nil, nil) end
+    return logStatus("Chip invalid", oChip, nil, nil) end
   local oFTrc, ncDir, ncLen = {}, getNorm(vDir), (tonumber(nLen) or 0)
   oFTrc.mChip, oFTrc.mFnc, oFTrc.mFlt = oChip, {Size = 0, ID = {}}, {};
   oFTrc.mFnc.Ent = {SKIP = {}, ONLY = {}, TYPE = type(eChip)} -- No entities in ONLY or SKIP by default
@@ -1158,32 +1157,32 @@ end
 
 __e2setcost(3)
 e2function vector ftrace:getPosLocal()
-  return convertOrgEnt(this, "WL", nil)
+  return convertOrgEnt(this, "WLE", nil)
 end
 
 __e2setcost(3)
 e2function vector ftrace:getPosWorld()
-  return convertOrgEnt(this, "LW", nil)
+  return convertOrgEnt(this, "LWE", nil)
 end
 
 __e2setcost(3)
 e2function vector ftrace:getPosLocal(entity vE)
-  return convertOrgEnt(this, "WL", vE)
+  return convertOrgEnt(this, "WLE", vE)
 end
 
 __e2setcost(3)
 e2function vector ftrace:getPosWorld(entity vE)
-  return convertOrgEnt(this, "LW", vE)
+  return convertOrgEnt(this, "LWE", vE)
 end
 
 __e2setcost(7)
 e2function vector ftrace:getPosLocal(vector vP, angle vA)
-  return convertOrgUCS(this, "WL", vP, vA)
+  return convertOrgUCS(this, "WLG", vP, vA)
 end
 
 __e2setcost(7)
 e2function vector ftrace:getPosWorld(vector vP, angle vA)
-  return convertOrgUCS(this, "LW", vP, vA)
+  return convertOrgUCS(this, "LWG", vP, vA)
 end
 
 __e2setcost(3)
